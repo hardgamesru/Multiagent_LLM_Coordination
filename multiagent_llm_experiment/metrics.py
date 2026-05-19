@@ -18,6 +18,9 @@ RAW_COLUMNS = [
     "iterations",
     "messages",
     "estimated_cost",
+    "input_tokens",
+    "output_tokens",
+    "total_tokens",
     "elapsed_seconds",
     "final_code_path",
     "error_message",
@@ -32,6 +35,9 @@ SUMMARY_COLUMNS = [
     "avg_iterations",
     "avg_messages",
     "avg_estimated_cost",
+    "avg_input_tokens",
+    "avg_output_tokens",
+    "avg_total_tokens",
     "avg_elapsed_seconds",
 ]
 
@@ -68,6 +74,9 @@ def write_summary_results(results: list[ExperimentResult], output_path: Path) ->
                     "avg_iterations": _average(result.iterations for result in group),
                     "avg_messages": _average(result.messages for result in group),
                     "avg_estimated_cost": _average(result.estimated_cost for result in group),
+                    "avg_input_tokens": _average(result.input_tokens for result in group),
+                    "avg_output_tokens": _average(result.output_tokens for result in group),
+                    "avg_total_tokens": _average(result.total_tokens for result in group),
                     "avg_elapsed_seconds": _average(result.elapsed_seconds for result in group),
                 }
             )

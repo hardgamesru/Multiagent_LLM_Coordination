@@ -18,6 +18,9 @@ class AgentResponse:
     role: str
     content: str
     messages_used: int
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
 
 
 class BaseAgent:
@@ -34,6 +37,9 @@ class BaseAgent:
             role=self.role,
             content=content,
             messages_used=1,
+            input_tokens=self.llm_client.last_input_tokens,
+            output_tokens=self.llm_client.last_output_tokens,
+            total_tokens=self.llm_client.last_total_tokens,
         )
 
 

@@ -23,6 +23,9 @@ class ExperimentResult:
     iterations: int
     messages: int
     estimated_cost: float
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
     elapsed_seconds: float
     final_code_path: str
     error_message: str
@@ -66,7 +69,13 @@ class BaseCoordinator:
         elapsed_seconds: float,
         final_code_path: Path | None,
         error_message: str,
+        usage_start: tuple[int, int, int] | None = None,
     ) -> ExperimentResult:
+        if usage_start is None:
+            usage_start = getattr(self, "_usage_start", None)
+        input_tokens, output_tokens, total_tokens = (0, 0, 0)
+        if usage_start is not None:
+            input_tokens, output_tokens, total_tokens = self.llm_client.get_usage_delta(usage_start)
         return ExperimentResult(
             run_id=run_id,
             timestamp=current_timestamp(),
@@ -78,6 +87,9 @@ class BaseCoordinator:
             iterations=iterations,
             messages=messages,
             estimated_cost=float(messages),
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
             elapsed_seconds=round(elapsed_seconds, 4),
             final_code_path=str(final_code_path) if final_code_path else "",
             error_message=error_message,
@@ -89,6 +101,7 @@ class SingleAgentCoordinator(BaseCoordinator):
 
     def run(self, task: Task, run_id: str) -> ExperimentResult:
         start = time.perf_counter()
+        self._usage_start = self.llm_client.get_usage_totals()
         messages = 0
         final_path: Path | None = None
         try:
@@ -128,6 +141,7 @@ class ChainCoordinator(BaseCoordinator):
 
     def run(self, task: Task, run_id: str) -> ExperimentResult:
         start = time.perf_counter()
+        self._usage_start = self.llm_client.get_usage_totals()
         messages = 0
         final_path: Path | None = None
         try:
@@ -188,6 +202,7 @@ class CentralizedCoordinator(BaseCoordinator):
 
     def run(self, task: Task, run_id: str) -> ExperimentResult:
         start = time.perf_counter()
+        self._usage_start = self.llm_client.get_usage_totals()
         messages = 0
         final_path: Path | None = None
         try:
@@ -258,6 +273,7 @@ class FeedbackGraphCoordinator(BaseCoordinator):
 
     def run(self, task: Task, run_id: str) -> ExperimentResult:
         start = time.perf_counter()
+        self._usage_start = self.llm_client.get_usage_totals()
         messages = 0
         final_path: Path | None = None
         last_error = ""
@@ -344,6 +360,7 @@ class FullyConnectedCoordinator(BaseCoordinator):
 
     def run(self, task: Task, run_id: str) -> ExperimentResult:
         start = time.perf_counter()
+        self._usage_start = self.llm_client.get_usage_totals()
         messages = 0
         final_path: Path | None = None
         try:
@@ -415,6 +432,7 @@ class ParallelConsensusCoordinator(BaseCoordinator):
 
     def run(self, task: Task, run_id: str) -> ExperimentResult:
         start = time.perf_counter()
+        self._usage_start = self.llm_client.get_usage_totals()
         messages = 0
         final_path: Path | None = None
         try:

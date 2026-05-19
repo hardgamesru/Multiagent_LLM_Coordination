@@ -8,9 +8,38 @@ from abc import ABC, abstractmethod
 class BaseLLMClient(ABC):
     model_name: str
 
+    def __init__(self) -> None:
+        self.last_input_tokens = 0
+        self.last_output_tokens = 0
+        self.last_total_tokens = 0
+        self.cumulative_input_tokens = 0
+        self.cumulative_output_tokens = 0
+        self.cumulative_total_tokens = 0
+
     @abstractmethod
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         raise NotImplementedError
+
+    def get_usage_totals(self) -> tuple[int, int, int]:
+        return (
+            self.cumulative_input_tokens,
+            self.cumulative_output_tokens,
+            self.cumulative_total_tokens,
+        )
+
+    def get_usage_delta(self, start: tuple[int, int, int]) -> tuple[int, int, int]:
+        current = self.get_usage_totals()
+        return tuple(current[index] - start[index] for index in range(3))
+
+    def _record_usage(self, input_tokens: int = 0, output_tokens: int = 0, total_tokens: int = 0) -> None:
+        if total_tokens == 0 and (input_tokens or output_tokens):
+            total_tokens = input_tokens + output_tokens
+        self.last_input_tokens = input_tokens
+        self.last_output_tokens = output_tokens
+        self.last_total_tokens = total_tokens
+        self.cumulative_input_tokens += input_tokens
+        self.cumulative_output_tokens += output_tokens
+        self.cumulative_total_tokens += total_tokens
 
 
 class GigaChatClient(BaseLLMClient):
@@ -21,6 +50,7 @@ class GigaChatClient(BaseLLMClient):
         verify_ssl: bool = False,
         timeout: int = 60,
     ) -> None:
+        super().__init__()
         self.auth_key = auth_key
         self.model_name = model
         self.verify_ssl = verify_ssl
@@ -43,6 +73,7 @@ class GigaChatClient(BaseLLMClient):
         )
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
+        self._record_usage(0, 0, 0)
         try:
             from gigachat import GigaChat
             from gigachat.models import Chat, Messages, MessagesRole
@@ -69,7 +100,27 @@ class GigaChatClient(BaseLLMClient):
                 f"GigaChat request failed for model {self.model_name}: {safe_error}"
             ) from exc
 
+        usage = getattr(response, "usage", None)
+        input_tokens = self._get_usage_value(usage, "prompt_tokens", "input_tokens")
+        output_tokens = self._get_usage_value(usage, "completion_tokens", "output_tokens")
+        total_tokens = self._get_usage_value(usage, "total_tokens")
+        self._record_usage(input_tokens, output_tokens, total_tokens)
         return response.choices[0].message.content
+
+    @staticmethod
+    def _get_usage_value(usage: object, *names: str) -> int:
+        if usage is None:
+            return 0
+        for name in names:
+            value = getattr(usage, name, None)
+            if value is not None:
+                return int(value)
+        if isinstance(usage, dict):
+            for name in names:
+                value = usage.get(name)
+                if value is not None:
+                    return int(value)
+        return 0
 
     def get_available_models(self) -> list[str]:
         try:
@@ -106,9 +157,11 @@ class GigaChatClient(BaseLLMClient):
 
 class MockLLMClient(BaseLLMClient):
     def __init__(self) -> None:
+        super().__init__()
         self.model_name = "mock"
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
+        self._record_usage(0, 0, 0)
         lowered_system = system_prompt.lower()
         solution = self._solution_for_prompt(user_prompt)
         is_tester = "errors" in lowered_system and "ok" in lowered_system
