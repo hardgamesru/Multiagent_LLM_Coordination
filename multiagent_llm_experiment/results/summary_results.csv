@@ -1,0 +1,7 @@
+architecture,model,tasks_total,tasks_success,success_rate,avg_iterations,avg_messages,avg_estimated_cost,avg_elapsed_seconds
+centralized,GigaChat-2-Max,9,4,0.4444444444444444,1.0,6.0,6.0,22.025866666666666
+chain,GigaChat-2-Max,9,5,0.5555555555555556,1.0,4.0,4.0,14.818644444444443
+feedback_graph,GigaChat-2-Max,9,6,0.6666666666666666,2.0,5.0,5.0,26.4541
+fully_connected,GigaChat-2-Max,9,6,0.6666666666666666,1.0,5.0,5.0,21.58658888888889
+parallel_consensus,GigaChat-2-Max,9,7,0.7777777777777778,1.0,6.0,6.0,30.300577777777775
+single_agent,GigaChat-2-Max,9,5,0.5555555555555556,1.0,1.0,1.0,4.206677777777778
