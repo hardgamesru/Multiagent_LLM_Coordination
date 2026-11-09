@@ -44,7 +44,7 @@ SUMMARY_COLUMNS = [
 
 def write_raw_results(results: list[ExperimentResult], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", newline="", encoding="utf-8") as csv_file:
+    with output_path.open("x", newline="", encoding="utf-8") as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=RAW_COLUMNS)
         writer.writeheader()
         for result in results:
@@ -58,7 +58,7 @@ def write_summary_results(results: list[ExperimentResult], output_path: Path) ->
     for result in results:
         grouped.setdefault((result.architecture, result.model), []).append(result)
 
-    with output_path.open("w", newline="", encoding="utf-8") as csv_file:
+    with output_path.open("x", newline="", encoding="utf-8") as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=SUMMARY_COLUMNS)
         writer.writeheader()
         for (architecture, model), group in sorted(grouped.items()):

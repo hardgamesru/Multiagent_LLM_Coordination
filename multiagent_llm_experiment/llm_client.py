@@ -47,7 +47,7 @@ class GigaChatClient(BaseLLMClient):
         self,
         auth_key: str,
         model: str,
-        verify_ssl: bool = False,
+        verify_ssl: bool = True,
         timeout: int = 60,
     ) -> None:
         super().__init__()
@@ -63,7 +63,7 @@ class GigaChatClient(BaseLLMClient):
             return None
 
         selected_model = model or os.getenv("GIGACHAT_MODEL", "GigaChat-2")
-        verify_ssl = os.getenv("GIGACHAT_VERIFY_SSL", "false").lower() in {"1", "true", "yes"}
+        verify_ssl = os.getenv("GIGACHAT_VERIFY_SSL", "true").lower() in {"1", "true", "yes"}
         timeout = int(os.getenv("GIGACHAT_TIMEOUT", "60"))
         return cls(
             auth_key=auth_key,
@@ -105,7 +105,13 @@ class GigaChatClient(BaseLLMClient):
         output_tokens = self._get_usage_value(usage, "completion_tokens", "output_tokens")
         total_tokens = self._get_usage_value(usage, "total_tokens")
         self._record_usage(input_tokens, output_tokens, total_tokens)
-        return response.choices[0].message.content
+        try:
+            content = response.choices[0].message.content
+        except (AttributeError, IndexError, TypeError) as exc:
+            raise RuntimeError("GigaChat returned an invalid response shape") from exc
+        if not isinstance(content, str) or not content.strip():
+            raise RuntimeError("GigaChat returned empty or invalid content")
+        return content
 
     @staticmethod
     def _get_usage_value(usage: object, *names: str) -> int:

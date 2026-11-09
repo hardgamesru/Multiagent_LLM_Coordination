@@ -1,3 +1,17 @@
+# Work in progress: benchmark hardening
+
+This branch is not ready for research runs. The legacy workflows still use the
+same tests for feedback or selection and final scoring. Reported success rates
+also conflate sandbox failures with task failures. The secure container backend
+has not yet been validated against a running Docker daemon. Do not interpret
+new outputs as a held-out protocol or as comparable research results.
+
+The sandbox requires the local image `python:3.12.8-alpine3.20` and never pulls
+it automatically. Docker is isolation, not a guarantee against container escape;
+the candidate and test driver share one interpreter, so completion detection is
+not a guarantee against a deliberately adversarial candidate. No host execution
+fallback is provided. Configure TLS verification and API credentials explicitly.
+
 # Multiagent LLM Experiment
 
 Экспериментальный Python-проект для статьи на тему: «Оптимизация распределения ролей и графовой структуры координации в мультиагентных LLM-системах для задач программной инженерии».
@@ -8,7 +22,7 @@
 
 Набор задач ориентирован на среднюю сложность: валидация email, CSV-парсинг, слияние интервалов, расчет корзины со скидками, частотный анализ, поиск циклов в графе зависимостей, анализ логов, группировка сущностей и дополнительная сложная задача построения порядка сборки.
 
-Каждая задача содержит `visible_examples`, которые можно показывать LLM-агентам, и `hidden_tests`, которые используются только в `sandbox_runner` для финальной проверки. Это снижает риск подгонки ответа под тесты и делает эксперимент ближе к реальным задачам программной инженерии.
+Каждая задача содержит `visible_examples` и `hidden_tests`. В текущем legacy-протоколе последние также используются некоторыми архитектурами при отборе и исправлении решений, поэтому независимой финальной оценкой их считать нельзя.
 
 ## Архитектуры
 

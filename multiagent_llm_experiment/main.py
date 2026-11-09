@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import argparse
 import os
+import uuid
 from pathlib import Path
 
 try:
     from dotenv import load_dotenv
 except ImportError:
-    def load_dotenv() -> None:
-        env_path = Path(".env")
+    def load_dotenv(env_path: Path) -> None:
         if not env_path.exists():
             return
         for line in env_path.read_text(encoding="utf-8").splitlines():
@@ -49,10 +49,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-iterations", type=int, default=3, help="Max feedback iterations.")
     parser.add_argument("--model", type=str, default=None, help="GigaChat model name.")
     parser.add_argument("--list-models", action="store_true", help="List available GigaChat models and exit.")
-    parser.add_argument("--output-dir", type=str, default="results", help="Directory for CSV files.")
+    parser.add_argument("--output-dir", type=str, default="runs", help="Parent directory for experiment runs.")
     parser.add_argument("--tasks-limit", type=int, default=None, help="Limit number of tasks.")
     parser.add_argument("--mock", action="store_true", help="Force MockLLMClient.")
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.max_iterations <= 0 or (args.tasks_limit is not None and args.tasks_limit <= 0):
+        parser.error("--max-iterations and --tasks-limit must be positive")
+    return args
 
 
 def create_llm_client(args: argparse.Namespace) -> BaseLLMClient:
@@ -61,19 +64,20 @@ def create_llm_client(args: argparse.Namespace) -> BaseLLMClient:
 
     gigachat_client = GigaChatClient.from_env(model=args.model)
     if gigachat_client is None:
-        print("GIGACHAT_AUTH_KEY is not set. Using MockLLMClient with model=mock.")
-        return MockLLMClient()
+        raise RuntimeError("GIGACHAT_AUTH_KEY is not set; configure it or explicitly use --mock.")
     return gigachat_client
 
 
 def main() -> None:
-    load_dotenv()
-    args = parse_args()
     project_dir = Path(__file__).resolve().parent
+    load_dotenv(project_dir / ".env")
+    args = parse_args()
     output_dir = Path(args.output_dir)
     if not output_dir.is_absolute():
         output_dir = project_dir / output_dir
-    solutions_dir = project_dir / "generated_solutions"
+    output_dir = output_dir / uuid.uuid4().hex
+    output_dir.mkdir(parents=True, exist_ok=False)
+    solutions_dir = output_dir / "generated_solutions"
     ensure_directories(output_dir, solutions_dir)
 
     llm_client = create_llm_client(args)
