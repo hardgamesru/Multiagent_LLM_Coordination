@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import re
 import uuid
 from datetime import datetime, timezone
@@ -29,6 +30,14 @@ def extract_python_code(text: str) -> str:
     """Extract a Python function from a raw LLM response."""
     if not text:
         return ""
+
+    blocks = re.findall(r"```(?:python|py)?[ \t]*\r?\n(.*?)```", text, re.IGNORECASE | re.DOTALL)
+    for candidate in blocks + [text]:
+        try:
+            ast.parse(candidate.strip())
+            return candidate.strip()
+        except SyntaxError:
+            pass
 
     fenced_blocks = re.findall(r"```(?:python|py)?\s*(.*?)```", text, flags=re.IGNORECASE | re.DOTALL)
     candidate = fenced_blocks[0] if fenced_blocks else text
@@ -61,6 +70,24 @@ def extract_python_code(text: str) -> str:
         cleaned.append(line)
 
     return "\n".join(cleaned).strip()
+
+
+def valid_function(code: str, name: str, description: str) -> bool:
+    try:
+        tree = ast.parse(code)
+        found = next(node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name)
+        match = re.search(r"Implement\s+" + re.escape(name) + r"\([^)]*\)", description)
+        if not match or isinstance(found, ast.AsyncFunctionDef):
+            return False
+        expected = ast.parse("def " + match.group()[len("Implement "):] + ":\n    pass").body[0]
+        args = found.args
+        wanted = expected.args
+        return ([a.arg for a in args.posonlyargs + args.args] ==
+                [a.arg for a in wanted.posonlyargs + wanted.args] and
+                len(args.defaults) == len(wanted.defaults) and not args.vararg and
+                not args.kwarg and not args.kwonlyargs)
+    except (SyntaxError, StopIteration, ValueError):
+        return False
 
 
 def build_task_prompt(

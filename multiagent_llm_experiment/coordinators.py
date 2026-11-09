@@ -6,9 +6,9 @@ from pathlib import Path
 
 from agents import AnalystAgent, DeveloperAgent, ManagerAgent, ReviewerAgent, TesterAgent
 from llm_client import BaseLLMClient
-from sandbox_runner import run_code_in_sandbox
+from sandbox_runner import SandboxResult, run_code_in_sandbox
 from tasks import Task
-from utils import build_task_prompt, current_timestamp, extract_python_code, safe_filename_part
+from utils import build_task_prompt, current_timestamp, extract_python_code, safe_filename_part, valid_function
 
 
 @dataclass
@@ -22,13 +22,22 @@ class ExperimentResult:
     success: bool
     iterations: int
     messages: int
-    estimated_cost: float
     input_tokens: int
     output_tokens: int
     total_tokens: int
     elapsed_seconds: float
     final_code_path: str
     error_message: str
+    status: str
+    protocol_version: str
+    llm_calls: int
+    generation_seconds: float
+    test_seconds: float
+    development_test_calls: int
+    evaluation_test_calls: int
+    usage_available: bool
+    experiment_id: str = ""
+    repeat_index: int = 1
 
 
 class BaseCoordinator:
@@ -46,6 +55,34 @@ class BaseCoordinator:
 
     def run(self, task: Task, run_id: str) -> ExperimentResult:
         raise NotImplementedError
+
+    def _begin(self, task: Task) -> None:
+        self._task = task
+        self.llm_client.last_call_failed = False
+        self.llm_client.usage_complete = self.llm_client.model_name != "mock"
+        self._call_start = self.llm_client.calls
+        self._generation_start = self.llm_client.generation_seconds
+        self._evaluation_status = None
+        self._infra_status = None
+        self._dev_calls = self._eval_calls = 0
+        self._test_seconds = 0.0
+
+    def _test(self, code: str, tests: str):
+        evaluation = tests == self._task.hidden_tests
+        if evaluation:
+            self._eval_calls += 1
+        else:
+            self._dev_calls += 1
+        if not valid_function(code, self._task.function_name, self._task.description):
+            result = SandboxResult(False, "", "", "invalid_code", 0.0, "invalid_code")
+        else:
+            result = run_code_in_sandbox(code, tests)
+        self._test_seconds += result.elapsed_seconds
+        if evaluation:
+            self._evaluation_status = result.status
+        if result.status in {"sandbox_timeout", "sandbox_error", "sandbox_unavailable"}:
+            self._infra_status = result.status
+        return result
 
     def _save_code(self, run_id: str, task: Task, iteration: int, code: str) -> Path:
         self.solutions_dir.mkdir(parents=True, exist_ok=True)
@@ -86,13 +123,21 @@ class BaseCoordinator:
             success=success,
             iterations=iterations,
             messages=messages,
-            estimated_cost=float(messages),
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             total_tokens=total_tokens,
             elapsed_seconds=round(elapsed_seconds, 4),
-            final_code_path=str(final_code_path) if final_code_path else "",
+            final_code_path=str(final_code_path.relative_to(self.solutions_dir.parent)) if final_code_path else "",
             error_message=error_message,
+            status=(self._infra_status or self._evaluation_status or
+                    ("provider_error" if self.llm_client.last_call_failed else "generation_error")),
+            protocol_version="v2",
+            llm_calls=self.llm_client.calls - self._call_start,
+            generation_seconds=round(self.llm_client.generation_seconds - self._generation_start, 4),
+            test_seconds=round(self._test_seconds, 4),
+            development_test_calls=self._dev_calls,
+            evaluation_test_calls=self._eval_calls,
+            usage_available=self.llm_client.usage_complete,
         )
 
 
@@ -101,6 +146,7 @@ class SingleAgentCoordinator(BaseCoordinator):
 
     def run(self, task: Task, run_id: str) -> ExperimentResult:
         start = time.perf_counter()
+        self._begin(task)
         self._usage_start = self.llm_client.get_usage_totals()
         messages = 0
         final_path: Path | None = None
@@ -112,7 +158,7 @@ class SingleAgentCoordinator(BaseCoordinator):
             messages += response.messages_used
             code = extract_python_code(response.content)
             final_path = self._save_code(run_id, task, 1, code)
-            sandbox = run_code_in_sandbox(code, task.hidden_tests)
+            sandbox = self._test(code, task.hidden_tests)
             return self._result(
                 run_id=run_id,
                 task=task,
@@ -132,7 +178,7 @@ class SingleAgentCoordinator(BaseCoordinator):
                 messages=messages,
                 elapsed_seconds=time.perf_counter() - start,
                 final_code_path=final_path,
-                error_message=str(exc),
+                error_message=type(exc).__name__,
             )
 
 
@@ -141,6 +187,7 @@ class ChainCoordinator(BaseCoordinator):
 
     def run(self, task: Task, run_id: str) -> ExperimentResult:
         start = time.perf_counter()
+        self._begin(task)
         self._usage_start = self.llm_client.get_usage_totals()
         messages = 0
         final_path: Path | None = None
@@ -170,10 +217,10 @@ class ChainCoordinator(BaseCoordinator):
             reviewer_response = reviewer.run(reviewer_input)
             messages += reviewer_response.messages_used
             reviewed_code = extract_python_code(reviewer_response.content)
-            final_code = reviewed_code if f"def {task.function_name}" in reviewed_code else developer_code
+            final_code = reviewed_code if valid_function(reviewed_code, task.function_name, task.description) else developer_code
 
             final_path = self._save_code(run_id, task, 1, final_code)
-            sandbox = run_code_in_sandbox(final_code, task.hidden_tests)
+            sandbox = self._test(final_code, task.hidden_tests)
             return self._result(
                 run_id=run_id,
                 task=task,
@@ -193,7 +240,7 @@ class ChainCoordinator(BaseCoordinator):
                 messages=messages,
                 elapsed_seconds=time.perf_counter() - start,
                 final_code_path=final_path,
-                error_message=str(exc),
+                error_message=type(exc).__name__,
             )
 
 
@@ -202,6 +249,7 @@ class CentralizedCoordinator(BaseCoordinator):
 
     def run(self, task: Task, run_id: str) -> ExperimentResult:
         start = time.perf_counter()
+        self._begin(task)
         self._usage_start = self.llm_client.get_usage_totals()
         messages = 0
         final_path: Path | None = None
@@ -241,10 +289,10 @@ class CentralizedCoordinator(BaseCoordinator):
             )
             messages += manager_final.messages_used
             manager_code = extract_python_code(manager_final.content)
-            final_code = manager_code if f"def {task.function_name}" in manager_code else developer_code
+            final_code = manager_code if valid_function(manager_code, task.function_name, task.description) else developer_code
 
             final_path = self._save_code(run_id, task, 1, final_code)
-            sandbox = run_code_in_sandbox(final_code, task.hidden_tests)
+            sandbox = self._test(final_code, task.hidden_tests)
             return self._result(
                 run_id=run_id,
                 task=task,
@@ -264,7 +312,7 @@ class CentralizedCoordinator(BaseCoordinator):
                 messages=messages,
                 elapsed_seconds=time.perf_counter() - start,
                 final_code_path=final_path,
-                error_message=str(exc),
+                error_message=type(exc).__name__,
             )
 
 
@@ -273,6 +321,7 @@ class FeedbackGraphCoordinator(BaseCoordinator):
 
     def run(self, task: Task, run_id: str) -> ExperimentResult:
         start = time.perf_counter()
+        self._begin(task)
         self._usage_start = self.llm_client.get_usage_totals()
         messages = 0
         final_path: Path | None = None
@@ -297,7 +346,12 @@ class FeedbackGraphCoordinator(BaseCoordinator):
                 code = extract_python_code(developer_response.content)
                 final_path = self._save_code(run_id, task, iteration, code)
 
-                sandbox = run_code_in_sandbox(code, task.hidden_tests)
+                sandbox = self._test(code, task.development_tests)
+                if sandbox.status in {"sandbox_error", "sandbox_unavailable", "sandbox_timeout"}:
+                    return self._result(run_id=run_id, task=task, success=False,
+                                        iterations=iteration, messages=messages,
+                                        elapsed_seconds=time.perf_counter() - start,
+                                        final_code_path=final_path, error_message=sandbox.status)
                 tester_response = tester.run(
                     f"{task_prompt}\n\nКод:\n{code}\n\nРезультат запуска тестов:\n"
                     f"success={sandbox.success}\nerror={sandbox.error_message}"
@@ -314,33 +368,21 @@ class FeedbackGraphCoordinator(BaseCoordinator):
                 )
                 messages += reviewer_response.messages_used
                 reviewed_code = extract_python_code(reviewer_response.content)
-                final_code = reviewed_code if f"def {task.function_name}" in reviewed_code else code
+                final_code = reviewed_code if valid_function(reviewed_code, task.function_name, task.description) else code
                 final_path = self._save_code(run_id, task, iteration, final_code)
-                final_sandbox = run_code_in_sandbox(final_code, task.hidden_tests)
-                if final_sandbox.success:
-                    return self._result(
-                        run_id=run_id,
-                        task=task,
-                        success=True,
-                        iterations=iteration,
-                        messages=messages,
-                        elapsed_seconds=time.perf_counter() - start,
-                        final_code_path=final_path,
-                        error_message="",
-                    )
+                code = final_code
+                break
 
-                last_error = final_sandbox.error_message
-                feedback = f"Ревью или итоговые тесты выявили ошибку: {last_error}"
-
+            final_sandbox = self._test(code, task.hidden_tests)
             return self._result(
                 run_id=run_id,
                 task=task,
-                success=False,
-                iterations=self.max_iterations,
+                success=final_sandbox.success,
+                iterations=iteration,
                 messages=messages,
                 elapsed_seconds=time.perf_counter() - start,
                 final_code_path=final_path,
-                error_message=last_error or "Max iterations reached",
+                error_message=final_sandbox.error_message,
             )
         except Exception as exc:
             return self._result(
@@ -351,7 +393,7 @@ class FeedbackGraphCoordinator(BaseCoordinator):
                 messages=messages,
                 elapsed_seconds=time.perf_counter() - start,
                 final_code_path=final_path,
-                error_message=str(exc),
+                error_message=type(exc).__name__,
             )
 
 
@@ -360,6 +402,7 @@ class FullyConnectedCoordinator(BaseCoordinator):
 
     def run(self, task: Task, run_id: str) -> ExperimentResult:
         start = time.perf_counter()
+        self._begin(task)
         self._usage_start = self.llm_client.get_usage_totals()
         messages = 0
         final_path: Path | None = None
@@ -399,11 +442,11 @@ class FullyConnectedCoordinator(BaseCoordinator):
             )
             messages += final_response.messages_used
             final_code = extract_python_code(final_response.content)
-            if f"def {task.function_name}" not in final_code:
+            if not valid_function(final_code, task.function_name, task.description):
                 final_code = initial_code
 
             final_path = self._save_code(run_id, task, 1, final_code)
-            sandbox = run_code_in_sandbox(final_code, task.hidden_tests)
+            sandbox = self._test(final_code, task.hidden_tests)
             return self._result(
                 run_id=run_id,
                 task=task,
@@ -423,7 +466,7 @@ class FullyConnectedCoordinator(BaseCoordinator):
                 messages=messages,
                 elapsed_seconds=time.perf_counter() - start,
                 final_code_path=final_path,
-                error_message=str(exc),
+                error_message=type(exc).__name__,
             )
 
 
@@ -432,6 +475,7 @@ class ParallelConsensusCoordinator(BaseCoordinator):
 
     def run(self, task: Task, run_id: str) -> ExperimentResult:
         start = time.perf_counter()
+        self._begin(task)
         self._usage_start = self.llm_client.get_usage_totals()
         messages = 0
         final_path: Path | None = None
@@ -458,7 +502,12 @@ class ParallelConsensusCoordinator(BaseCoordinator):
                 messages += response.messages_used
                 code = extract_python_code(response.content)
                 path = self._save_code(run_id, task, index, code)
-                sandbox = run_code_in_sandbox(code, task.hidden_tests)
+                sandbox = self._test(code, task.development_tests)
+                if sandbox.status in {"sandbox_error", "sandbox_unavailable", "sandbox_timeout"}:
+                    return self._result(run_id=run_id, task=task, success=False,
+                                        iterations=1, messages=messages,
+                                        elapsed_seconds=time.perf_counter() - start,
+                                        final_code_path=path, error_message=sandbox.status)
                 candidates.append(
                     {
                         "index": index,
@@ -489,11 +538,11 @@ class ParallelConsensusCoordinator(BaseCoordinator):
                 reviewed_code = extract_python_code(reviewer_response.content)
                 final_code = (
                     reviewed_code
-                    if f"def {task.function_name}" in reviewed_code
+                    if valid_function(reviewed_code, task.function_name, task.description)
                     else str(best_candidate["code"])
                 )
                 final_path = self._save_code(run_id, task, 4, final_code)
-                final_sandbox = run_code_in_sandbox(final_code, task.hidden_tests)
+                final_sandbox = self._test(final_code, task.hidden_tests)
                 if final_sandbox.success:
                     return self._result(
                         run_id=run_id,
@@ -524,18 +573,16 @@ class ParallelConsensusCoordinator(BaseCoordinator):
             messages += reviewer_response.messages_used
             first_candidate = candidates[0] if candidates else None
             final_path = first_candidate["path"] if first_candidate else None
+            final_sandbox = self._test(str(first_candidate["code"]), task.hidden_tests)
             return self._result(
                 run_id=run_id,
                 task=task,
-                success=False,
+                success=final_sandbox.success,
                 iterations=1,
                 messages=messages,
                 elapsed_seconds=time.perf_counter() - start,
                 final_code_path=final_path if isinstance(final_path, Path) else None,
-                error_message=(
-                    "No candidate passed sandbox tests. "
-                    f"Reviewer notes: {reviewer_response.content[:200]}"
-                ),
+                error_message=final_sandbox.error_message,
             )
         except Exception as exc:
             return self._result(
@@ -546,7 +593,7 @@ class ParallelConsensusCoordinator(BaseCoordinator):
                 messages=messages,
                 elapsed_seconds=time.perf_counter() - start,
                 final_code_path=final_path,
-                error_message=str(exc),
+                error_message=type(exc).__name__,
             )
 
     @staticmethod

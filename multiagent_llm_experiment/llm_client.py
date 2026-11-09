@@ -9,6 +9,10 @@ class BaseLLMClient(ABC):
     model_name: str
 
     def __init__(self) -> None:
+        self.calls = 0
+        self.generation_seconds = 0.0
+        self.last_call_failed = False
+        self.usage_complete = True
         self.last_input_tokens = 0
         self.last_output_tokens = 0
         self.last_total_tokens = 0
@@ -101,6 +105,13 @@ class GigaChatClient(BaseLLMClient):
             ) from exc
 
         usage = getattr(response, "usage", None)
+        def has_usage(*names: str) -> bool:
+            return any((usage.get(name) if isinstance(usage, dict) else getattr(usage, name, None)) is not None
+                       for name in names)
+        if usage is None or not (has_usage("prompt_tokens", "input_tokens") and
+                                 has_usage("completion_tokens", "output_tokens") and
+                                 has_usage("total_tokens")):
+            self.usage_complete = False
         input_tokens = self._get_usage_value(usage, "prompt_tokens", "input_tokens")
         output_tokens = self._get_usage_value(usage, "completion_tokens", "output_tokens")
         total_tokens = self._get_usage_value(usage, "total_tokens")
@@ -164,6 +175,7 @@ class GigaChatClient(BaseLLMClient):
 class MockLLMClient(BaseLLMClient):
     def __init__(self) -> None:
         super().__init__()
+        self.usage_complete = False
         self.model_name = "mock"
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:

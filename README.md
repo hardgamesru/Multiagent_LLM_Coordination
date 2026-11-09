@@ -1,128 +1,79 @@
-# Work in progress: benchmark hardening
+# Multiagent LLM coordination benchmark
 
-This branch is not ready for research runs. The legacy workflows still use the
-same tests for feedback or selection and final scoring. Reported success rates
-also conflate sandbox failures with task failures. The secure container backend
-has not yet been validated against a running Docker daemon. Do not interpret
-new outputs as a held-out protocol or as comparable research results.
+This project compares six coordination workflows on the same nine Python programming tasks. It records correctness, model calls, token usage when supplied, generation and sandbox time, and total elapsed time. The task set is small; results are exploratory and cannot establish statistical significance or general rankings.
 
-The sandbox requires the local image `python:3.12.8-alpine3.20` and never pulls
-it automatically. Docker is isolation, not a guarantee against container escape;
-the candidate and test driver share one interpreter, so completion detection is
-not a guarantee against a deliberately adversarial candidate. No host execution
-fallback is provided. Configure TLS verification and API credentials explicitly.
+## Workflows
 
-# Multiagent LLM Experiment
+| CLI key | Implemented workflow |
+|---|---|
+| `single_agent` | Developer produces a solution. |
+| `chain` | Analyst → Developer → Tester → Reviewer. |
+| `centralized` | Manager → Analyst → Developer → Tester → Reviewer → Manager. |
+| `feedback_graph` | Developer iterates using development-test feedback, followed by review. |
+| `fully_connected` | Staged Analyst → Developer → Tester → Reviewer → Developer context sharing; not all-to-all messaging. |
+| `parallel_consensus` | Three candidates are generated and tested **sequentially**. The shortest development-passing candidate wins, with generation order breaking ties; if none passes, the first is chosen. A reviewer may revise the chosen candidate. The key is retained for compatibility; this is not concurrent execution. |
 
-Экспериментальный Python-проект для статьи на тему: «Оптимизация распределения ролей и графовой структуры координации в мультиагентных LLM-системах для задач программной инженерии».
+```mermaid
+flowchart LR
+    T[Task and visible examples] --> W[One coordination workflow]
+    W --> D[Optional development checks]
+    D --> W
+    W --> C[Fixed final candidate]
+    C --> E[One held-out evaluation]
+    E --> R[Raw row and summary]
+```
 
-Проект сравнивает несколько архитектур взаимодействия LLM-агентов на одинаковом наборе небольших задач программной инженерии. Мультиагентная система рассматривается как граф `G = (V, E)`, где `V` - агенты с ролями, а `E` - каналы обмена сообщениями.
+## Evaluation protocol v2
 
-## Задачи
+Each task has visible examples in prompts, a separate development test for feedback or selection, and final evaluation assertions. The latter are run only after the final candidate is fixed and are never fed back to the model. Invalid code is rejected statically; when generation or infrastructure fails, a final evaluation may not be possible. Tests are public in the repository, so this is a procedural holdout, not a secret benchmark or a guarantee against training-data contamination.
 
-Набор задач ориентирован на среднюю сложность: валидация email, CSV-парсинг, слияние интервалов, расчет корзины со скидками, частотный анализ, поиск циклов в графе зависимостей, анализ логов, группировка сущностей и дополнительная сложная задача построения порядка сборки.
+The nine tasks cover email validation, CSV parsing, interval merging, shopping-cart totals, word frequencies, dependency cycles, log analysis, grouping and build ordering. Tests provide limited coverage and development checks are deliberately small. The existing `results/` CSV files and tracked generated solutions are **legacy v1**: earlier workflows used the same hidden tests for selection and final scoring. Their numbers are not directly comparable with v2. No real v2 model results are included here. Mock output uses hard-coded fixtures and is only a plumbing check, not a measure of LLM quality.
 
-Каждая задача содержит `visible_examples` и `hidden_tests`. В текущем legacy-протоколе последние также используются некоторыми архитектурами при отборе и исправлении решений, поэтому независимой финальной оценкой их считать нельзя.
+## Metrics and limitations
 
-## Архитектуры
+Each invocation creates `runs/<experiment_id>/` with `manifest.json`, `raw_results.csv`, `summary_results.csv` and `generated_solutions/`. Old runs are never overwritten; generated code and runs are Git-ignored. The manifest records the protocol, selected tasks, repeats, model, sandbox limits, Python and provider versions, task/prompt hashes, Git commit and tracked-file dirty flag. Seed control is unavailable in this client; provider defaults and evolving model behavior prevent exact reproduction. A dirty flag does not capture untracked files or all dependency versions.
 
-`single_agent` - базовая линия: один агент сразу генерирует решение.
+Raw rows contain status, model calls including failed calls observable by the client, token counts only when provider usage is complete, generation time, test time, wall time, test counts and relative candidate paths. No monetary cost is inferred. The summary is computed from raw rows: success is `passed / (passed + failed_tests + invalid_code)`; infrastructure, timeout and generation/provider failures are excluded and separately counted. The repeat standard deviation uses available per-repeat success rates. A timeout can have infrastructure or candidate causes and is conservatively excluded from the correctness denominator. Raw mock calls are fixture calls, not API calls.
 
-`chain` - последовательная цепочка: аналитик, программист, тестировщик, ревьюер. Возврата на исправление нет.
+## Setup and reproduction
 
-`centralized` - централизованная схема с менеджером, который получает сведения от агентов и выбирает итоговое решение.
+Requires Python 3.10+ and a running Docker daemon. Explicitly install the pinned image once; runs never pull it automatically. The following commands execute generated code **only inside Docker**.
 
-`feedback_graph` - граф с обратной связью: аналитик, программист, тестировщик, ревьюер; при ошибках решение возвращается программисту на исправление. Число итераций ограничено параметром `--max-iterations`.
-
-`fully_connected` - полносвязная структура: аналитик, программист, тестировщик и ревьюер обмениваются контекстом максимально полно. Программист получает обратную связь от тестировщика и ревьюера, после чего формирует финальный код. Цель схемы - проверить, повышает ли максимальный обмен информацией качество решения. Ожидаемый недостаток - больше сообщений и более высокая условная стоимость.
-
-`parallel_consensus` - параллельный консенсус: три программиста независимо генерируют решения, каждое решение проверяется в sandbox, затем тестировщик и ревьюер выбирают лучший вариант. Если несколько решений прошли тесты, выбирается самое короткое и понятное. Цель схемы - проверить, повышает ли независимая генерация вероятность успеха. Ожидаемый недостаток - больше сообщений и более высокая стоимость.
-
-## Агенты
-
-`AnalystAgent` анализирует условие, входы, выходы и крайние случаи.
-
-`DeveloperAgent` пишет Python-функцию.
-
-`TesterAgent` кратко проверяет решение и возвращает `OK` или список ошибок.
-
-`ReviewerAgent` выполняет финальную проверку и возвращает код либо замечания.
-
-`ManagerAgent` координирует централизованную архитектуру и принимает итоговое решение.
-
-## Установка
+PowerShell, from the repository root:
 
 ```powershell
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
+py -m venv .venv
+.\.venv\Scripts\python -m pip install -r multiagent_llm_experiment\requirements.txt
+docker pull python:3.12.8-alpine3.20@sha256:3b1df87fc50e7d47762aeb48673736079aa22e7c98c8851f5453dd49fc03ad1b
+cd multiagent_llm_experiment
+..\.venv\Scripts\python -m unittest -v test_protocol test_recording test_sandbox_security
+$env:RUN_DOCKER_TESTS='1'
+..\.venv\Scripts\python -m unittest -v test_sandbox_integration test_task_quality
+..\.venv\Scripts\python main.py --mock --architectures single_agent chain --repeats 2
 ```
 
-## Настройка GigaChat
+Linux/macOS, from the repository root:
 
-Скопируйте `.env.example` в `.env` и заполните переменные:
-
-```text
-GIGACHAT_AUTH_KEY=
-GIGACHAT_MODEL=GigaChat-2
-GIGACHAT_VERIFY_SSL=false
-GIGACHAT_TIMEOUT=60
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r multiagent_llm_experiment/requirements.txt
+docker pull python:3.12.8-alpine3.20@sha256:3b1df87fc50e7d47762aeb48673736079aa22e7c98c8851f5453dd49fc03ad1b
+cd multiagent_llm_experiment
+../.venv/bin/python -m unittest -v test_protocol test_recording test_sandbox_security
+RUN_DOCKER_TESTS=1 ../.venv/bin/python -m unittest -v test_sandbox_integration test_task_quality
+../.venv/bin/python main.py --mock --architectures single_agent chain --repeats 2
 ```
 
-Если `GIGACHAT_AUTH_KEY` не задан, программа автоматически использует `MockLLMClient`, а в CSV будет записано `model=mock`.
+For a real GigaChat run, copy `multiagent_llm_experiment/.env.example` to `.env`, configure the credential and omit `--mock`. TLS verification is on by default. A missing credential fails explicitly. Review provider pricing before making paid calls. If the provider requires a custom CA, configure an appropriate trusted certificate; disabling verification is a development-only override.
 
-## Команды запуска
+Recreate a summary and SVG chart from a run (choose new output paths; files are not overwritten):
 
-```powershell
-python main.py
-python main.py --mock
-python main.py --mock --tasks-limit 2
-python main.py --architectures single_agent chain --tasks-limit 2
-python main.py --architectures fully_connected parallel_consensus --tasks-limit 2
-python main.py --list-models
-python main.py --model GigaChat-2 --tasks-limit 2
-python main.py --model GigaChat-2-Max --max-iterations 3
-python test_quality_check.py
+```sh
+python analyze_results.py runs/EXPERIMENT_ID/raw_results.csv --summary summary-copy.csv --plot success.svg
 ```
 
-## Экономия токенов
+## Security and organization
 
-Рекомендуемый порядок работы:
+`sandbox_runner.py` uses a non-root Docker container with network disabled, a read-only root filesystem, dropped capabilities, resource limits and bounded captured output. Docker is not a perfect security boundary and container escapes are possible. Candidate and test driver run in the same interpreter, so the completion protocol prevents accidental early exits but is not a proof against deliberately adversarial code. Avoid running untrusted workloads on sensitive hosts. Docker or image unavailability fails closed; it never falls back to executing candidates on the host.
 
-```powershell
-python main.py --mock --tasks-limit 2
-python main.py --model GigaChat-2 --tasks-limit 2
-python main.py --model GigaChat-2-Max --max-iterations 3
-```
-
-Не стоит делать много повторных прогонов на `GigaChat-2-Max`. Для статьи обычно достаточно одного или двух финальных прогонов, чтобы не тратить лишние токены.
-
-## Результаты
-
-Основные CSV-файлы:
-
-`results/raw_results.csv` - строка на каждую пару задача-архитектура.
-
-`results/summary_results.csv` - агрегированные метрики по архитектурам и моделям.
-
-Сгенерированные решения сохраняются в `generated_solutions/`.
-
-## Метрики
-
-`success` показывает, прошли ли unit-тесты.
-
-`iterations` показывает число итераций, потребовавшихся архитектуре.
-
-`messages` показывает число обращений агентов к LLM.
-
-`estimated_cost` сейчас равен числу сообщений и служит простой прокси-оценкой стоимости.
-
-`elapsed_seconds` показывает время выполнения архитектуры на задаче.
-
-`success_rate` в сводной таблице показывает долю успешно решенных задач для архитектуры.
-
-## Использование в статье
-
-В статье можно описать проект как воспроизводимый экспериментальный стенд. Архитектуры задают разные графы координации, задачи фиксируют одинаковую экспериментальную базу, а CSV-файлы позволяют сравнить качество, число сообщений, число итераций и время выполнения.
-
-Важно: mock-режим нужен только для проверки инфраструктуры. Для экспериментальных выводов используйте результаты с реальной моделью GigaChat и явно указывайте имя модели из CSV.
+Project code and tests are in `multiagent_llm_experiment/`; `.github/workflows/ci.yml` defines offline and container checks. Tracked historical artifacts are retained. The earlier publication is related prior work, not a specification for this implementation.

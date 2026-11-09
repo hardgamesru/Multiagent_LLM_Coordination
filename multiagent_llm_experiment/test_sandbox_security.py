@@ -31,6 +31,13 @@ class SandboxSecurityTests(unittest.TestCase):
         sandbox_runner._drain(BytesIO(b"a" * 100000), 100, chunks)
         self.assertEqual(len(b"".join(chunks)), 100)
 
+    def test_stderr_keeps_completion_after_large_output(self):
+        from io import BytesIO
+        chunks = []
+        sandbox_runner._drain(BytesIO(b"a" * 100000 + b"\ncompletion:passed\n"), 100, chunks, True)
+        self.assertEqual(len(b"".join(chunks)), 100)
+        self.assertTrue(b"".join(chunks).endswith(b"\ncompletion:passed\n"))
+
 
 if __name__ == "__main__":
     unittest.main()

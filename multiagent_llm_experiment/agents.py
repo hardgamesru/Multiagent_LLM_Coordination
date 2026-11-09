@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import time
 
 from llm_client import BaseLLMClient
 from prompts import (
@@ -31,7 +32,15 @@ class BaseAgent:
         self.system_prompt = system_prompt
 
     def run(self, input_text: str) -> AgentResponse:
-        content = self.llm_client.generate(self.system_prompt, input_text)
+        self.llm_client.calls += 1
+        started = time.perf_counter()
+        try:
+            content = self.llm_client.generate(self.system_prompt, input_text)
+        except Exception:
+            self.llm_client.last_call_failed = True
+            raise
+        finally:
+            self.llm_client.generation_seconds += time.perf_counter() - started
         return AgentResponse(
             agent_name=self.name,
             role=self.role,

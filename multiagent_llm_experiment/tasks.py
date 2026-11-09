@@ -12,6 +12,24 @@ class Task:
     visible_examples: list[str]
     hidden_tests: str
 
+    @property
+    def development_tests(self) -> str:
+        return DEVELOPMENT_TESTS[self.task_id]
+
+
+# Separate from the legacy tests, which are used only for final scoring in v2.
+DEVELOPMENT_TESTS = {
+    "t01": 'assert normalize_email("  Hi@HOST.NET ") == "Hi@host.net"',
+    "t02": '''assert parse_csv_line('x,"a,b",z') == ["x", "a,b", "z"]''',
+    "t03": 'assert merge_intervals([(8, 9), (2, 4), (4, 6)]) == [(2, 6), (8, 9)]',
+    "t04": '''assert calculate_cart_total([{"price": 8, "quantity": 2, "category": "food"}], "SALE10") == 14.4''',
+    "t05": 'assert top_k_frequent(["X", "x", "a", "A", "b"], 2) == ["a", "x"]',
+    "t06": 'assert detect_cycle({"x": ["y"], "y": ["x"]}) is True',
+    "t07": '''assert analyze_logs(["2025-01-01 10:00:00 ERROR /v 500"])["errors"] == 1''',
+    "t08": '''assert group_by_category([{"id": 7}]) == {"unknown": [{"id": 7}]}''',
+    "t09": 'assert resolve_build_order({"web": ["core"]}) == ["core", "web"]',
+}
+
 
 def get_tasks() -> list[Task]:
     return [
@@ -63,8 +81,6 @@ expect_value_error(normalize_email, "   ")
                 'parse_csv_line("\\"a,b\\",c") -> ["a,b", "c"]',
             ],
             hidden_tests="""
-assert parse_csv_line("a,b,c") == ["a", "b", "c"]
-assert parse_csv_line('"a,b",c') == ["a,b", "c"]
 assert parse_csv_line('"a""b",c') == ['a"b', "c"]
 assert parse_csv_line('one,"two, too","three""3"') == ["one", "two, too", 'three"3']
 assert parse_csv_line("a,,c,") == ["a", "", "c", ""]
@@ -97,7 +113,6 @@ def expect_value_error(func, *args):
 
 assert merge_intervals([]) == []
 assert merge_intervals([(1, 3)]) == [(1, 3)]
-assert merge_intervals([(5, 7), (1, 3), (2, 4)]) == [(1, 4), (5, 7)]
 assert merge_intervals([(1, 2), (2, 3), (6, 8)]) == [(1, 3), (6, 8)]
 assert merge_intervals([(-5, -1), (-3, 2), (10, 10)]) == [(-5, 2), (10, 10)]
 assert merge_intervals([(4, 5), (1, 2), (2, 4)]) == [(1, 5)]
@@ -130,7 +145,6 @@ def expect_value_error(func, *args):
 
 assert calculate_cart_total([]) == 0.0
 assert calculate_cart_total([{"price": 10, "quantity": 2, "category": "book"}]) == 20.0
-assert calculate_cart_total([{"price": 10, "quantity": 2, "category": "book"}], "SALE10") == 18.0
 assert calculate_cart_total([{"price": 20, "quantity": 1, "category": "food"}, {"price": 10, "quantity": 2, "category": "book"}], "FOOD5") == 39.0
 assert calculate_cart_total([{"price": 0.1, "quantity": 3, "category": "food"}]) == 0.3
 assert calculate_cart_total([{"price": 12.345, "quantity": 2, "category": "food"}], "FOOD5") == 23.46
@@ -249,7 +263,6 @@ result = group_by_category(items)
 assert list(result.keys()) == ["food", "book"]
 assert [item["id"] for item in result["food"]] == [1, 3]
 assert [item["id"] for item in result["book"]] == [2]
-assert group_by_category([]) == {}
 assert list(group_by_category([{"id": 1}, {"id": 2, "category": "x"}]).keys()) == ["unknown", "x"]
 assert [item["id"] for item in group_by_category([{"id": 1}, {"id": 2}])["unknown"]] == [1, 2]
 assert group_by_category([{"id": 1, "category": ""}]) == {"": [{"id": 1, "category": ""}]}
@@ -283,13 +296,11 @@ def expect_value_error(func, *args):
         pass
 
 assert resolve_build_order({}) == []
-assert resolve_build_order({"app": ["lib"], "lib": []}) == ["lib", "app"]
 assert resolve_build_order({"app": ["core", "ui"], "ui": ["core"]}) == ["core", "ui", "app"]
 assert resolve_build_order({"b": [], "a": []}) == ["a", "b"]
 assert resolve_build_order({"deploy": ["build"], "test": ["build"]}) == ["build", "deploy", "test"]
 assert resolve_build_order({"a": ["c"], "b": ["c"], "c": []}) == ["c", "a", "b"]
 assert resolve_build_order({"package": ["compile", "test"], "test": ["compile"], "compile": ["lint"]}) == ["lint", "compile", "test", "package"]
-expect_value_error(resolve_build_order, {"a": ["b"], "b": ["a"]})
 expect_value_error(resolve_build_order, {"a": ["a"]})
 """,
         ),

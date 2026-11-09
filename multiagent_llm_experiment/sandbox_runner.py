@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass
 
 # Install explicitly before a run; --pull=never prevents implicit downloads.
-IMAGE = "python:3.12.8-alpine3.20"
+IMAGE = "python:3.12.8-alpine3.20@sha256:3b1df87fc50e7d47762aeb48673736079aa22e7c98c8851f5453dd49fc03ad1b"
 MAX_INPUT = 128 * 1024
 MAX_OUTPUT = 16 * 1024
 
@@ -43,13 +43,17 @@ class SandboxResult:
     status: str = "sandbox_error"
 
 
-def _drain(stream, limit: int, chunks: list[bytes]) -> None:
+def _drain(stream, limit: int, chunks: list[bytes], keep_tail: bool = False) -> None:
     remaining = limit
     while True:
         block = stream.read(4096)
         if not block:
             break
-        if remaining:
+        if keep_tail:
+            # Keep the final bytes so noisy candidates cannot accidentally hide
+            # the driver's completion record behind earlier stderr output.
+            chunks[:] = [(b"".join(chunks) + block)[-limit:]]
+        elif remaining:
             chunks.append(block[:remaining])
             remaining -= min(remaining, len(block))
 
@@ -77,8 +81,8 @@ def run_code_in_sandbox(code: str, tests: str, timeout: int = 5) -> SandboxResul
     try:
         proc = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
-        for stream, chunks in ((proc.stdout, out), (proc.stderr, err)):
-            thread = threading.Thread(target=_drain, args=(stream, MAX_OUTPUT, chunks), daemon=True)
+        for stream, chunks, keep_tail in ((proc.stdout, out, False), (proc.stderr, err, True)):
+            thread = threading.Thread(target=_drain, args=(stream, MAX_OUTPUT, chunks, keep_tail), daemon=True)
             thread.start()
             threads.append(thread)
 
@@ -122,3 +126,8 @@ def run_code_in_sandbox(code: str, tests: str, timeout: int = 5) -> SandboxResul
                 proc.wait(timeout=2)
             except subprocess.SubprocessError:
                 pass
+            for thread in threads:
+                thread.join(timeout=1)
+            for stream in (proc.stdin, proc.stdout, proc.stderr):
+                if stream is not None and not stream.closed:
+                    stream.close()

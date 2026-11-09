@@ -1,89 +1,72 @@
-from __future__ import annotations
-
+"""CSV recording and deterministic summaries for protocol v2."""
 import csv
+import statistics
 from dataclasses import asdict
 from pathlib import Path
 
-from coordinators import ExperimentResult
+RAW_COLUMNS = ["experiment_id", "run_id", "repeat_index", "timestamp", "task_id", "task_name",
+               "architecture", "model", "protocol_version", "status", "success", "iterations",
+               "llm_calls", "usage_available", "input_tokens", "output_tokens", "total_tokens",
+               "generation_seconds", "test_seconds", "elapsed_seconds", "development_test_calls",
+               "evaluation_test_calls", "final_code_path", "error_message"]
+SUMMARY_COLUMNS = ["architecture", "model", "runs", "eligible", "passed", "success_rate",
+                   "repeat_success_rate_stddev", "infrastructure_failures", "infrastructure_failure_rate",
+                   "generation_or_provider_failures", "avg_llm_calls"]
+ELIGIBLE = {"passed", "failed_tests", "invalid_code"}
+INFRA = {"sandbox_timeout", "sandbox_error", "sandbox_unavailable"}
 
 
-RAW_COLUMNS = [
-    "run_id",
-    "timestamp",
-    "task_id",
-    "task_name",
-    "architecture",
-    "model",
-    "success",
-    "iterations",
-    "messages",
-    "estimated_cost",
-    "input_tokens",
-    "output_tokens",
-    "total_tokens",
-    "elapsed_seconds",
-    "final_code_path",
-    "error_message",
-]
-
-SUMMARY_COLUMNS = [
-    "architecture",
-    "model",
-    "tasks_total",
-    "tasks_success",
-    "success_rate",
-    "avg_iterations",
-    "avg_messages",
-    "avg_estimated_cost",
-    "avg_input_tokens",
-    "avg_output_tokens",
-    "avg_total_tokens",
-    "avg_elapsed_seconds",
-]
-
-
-def write_raw_results(results: list[ExperimentResult], output_path: Path) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("x", newline="", encoding="utf-8") as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=RAW_COLUMNS)
+def write_raw_results(results, output_path: Path) -> None:
+    with output_path.open("x", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=RAW_COLUMNS, extrasaction="ignore")
         writer.writeheader()
         for result in results:
             row = asdict(result)
-            writer.writerow({column: row.get(column, "") for column in RAW_COLUMNS})
+            if not row["usage_available"]:
+                for field in ("input_tokens", "output_tokens", "total_tokens"):
+                    row[field] = ""
+            writer.writerow(row)
 
 
-def write_summary_results(results: list[ExperimentResult], output_path: Path) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    grouped: dict[tuple[str, str], list[ExperimentResult]] = {}
-    for result in results:
-        grouped.setdefault((result.architecture, result.model), []).append(result)
+def summarize(rows):
+    grouped = {}
+    for row in rows:
+        grouped.setdefault((row["architecture"], row["model"]), []).append(row)
+    output = []
+    for (architecture, model), group in sorted(grouped.items()):
+        eligible = sum(row["status"] in ELIGIBLE for row in group)
+        passed = sum(row["status"] == "passed" for row in group)
+        infra = sum(row["status"] in INFRA for row in group)
+        repeats = sorted({str(row["repeat_index"]) for row in group})
+        rates = []
+        for repeat in repeats:
+            subset = [row for row in group if str(row["repeat_index"]) == repeat and row["status"] in ELIGIBLE]
+            if subset:
+                rates.append(sum(row["status"] == "passed" for row in subset) / len(subset))
+        output.append({"architecture": architecture, "model": model, "runs": len(group),
+                       "eligible": eligible, "passed": passed,
+                       "success_rate": passed / eligible if eligible else "",
+                       "repeat_success_rate_stddev": statistics.stdev(rates) if len(rates) > 1 else "",
+                       "infrastructure_failures": infra,
+                       "infrastructure_failure_rate": infra / len(group),
+                       "generation_or_provider_failures": sum(row["status"] in {"provider_error", "generation_error"} for row in group),
+                       "avg_llm_calls": sum(int(row["llm_calls"]) for row in group) / len(group)})
+    return output
 
-    with output_path.open("x", newline="", encoding="utf-8") as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=SUMMARY_COLUMNS)
+
+def write_summary_from_raw(raw_path: Path, output_path: Path) -> None:
+    with raw_path.open(newline="", encoding="utf-8") as stream:
+        rows = summarize(list(csv.DictReader(stream)))
+    with output_path.open("x", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=SUMMARY_COLUMNS)
         writer.writeheader()
-        for (architecture, model), group in sorted(grouped.items()):
-            tasks_total = len(group)
-            tasks_success = sum(1 for result in group if result.success)
-            writer.writerow(
-                {
-                    "architecture": architecture,
-                    "model": model,
-                    "tasks_total": tasks_total,
-                    "tasks_success": tasks_success,
-                    "success_rate": tasks_success / tasks_total if tasks_total else 0,
-                    "avg_iterations": _average(result.iterations for result in group),
-                    "avg_messages": _average(result.messages for result in group),
-                    "avg_estimated_cost": _average(result.estimated_cost for result in group),
-                    "avg_input_tokens": _average(result.input_tokens for result in group),
-                    "avg_output_tokens": _average(result.output_tokens for result in group),
-                    "avg_total_tokens": _average(result.total_tokens for result in group),
-                    "avg_elapsed_seconds": _average(result.elapsed_seconds for result in group),
-                }
-            )
+        writer.writerows(rows)
 
 
-def _average(values: object) -> float:
-    items = list(values)
-    if not items:
-        return 0.0
-    return sum(items) / len(items)
+def write_summary_results(results, output_path: Path) -> None:
+    # Kept for callers that already have rows in memory.
+    rows = summarize([asdict(result) for result in results])
+    with output_path.open("x", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=SUMMARY_COLUMNS)
+        writer.writeheader()
+        writer.writerows(rows)

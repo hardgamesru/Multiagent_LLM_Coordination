@@ -64,6 +64,8 @@ def main() -> None:
     for task_name, code in NAIVE_SOLUTIONS.items():
         task = tasks_by_name[task_name]
         result = run_code_in_sandbox(code, task.hidden_tests)
+        if result.status not in {"passed", "failed_tests", "invalid_code"}:
+            raise RuntimeError(f"Sandbox infrastructure error: {result.status}")
         if result.success:
             failed_to_reject.append(task_name)
             print(f"FAIL: hidden tests accepted naive solution for {task_name}")
