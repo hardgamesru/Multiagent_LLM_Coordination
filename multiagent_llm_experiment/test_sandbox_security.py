@@ -1,6 +1,8 @@
 """Offline sandbox contract checks. These tests never execute candidate code."""
 import unittest
-from unittest.mock import patch
+import threading
+from io import BytesIO
+from unittest.mock import MagicMock, patch
 
 import sandbox_runner
 
@@ -37,6 +39,25 @@ class SandboxSecurityTests(unittest.TestCase):
         sandbox_runner._drain(BytesIO(b"a" * 100000 + b"\ncompletion:passed\n"), 100, chunks, True)
         self.assertEqual(len(b"".join(chunks)), 100)
         self.assertTrue(b"".join(chunks).endswith(b"\ncompletion:passed\n"))
+
+    def test_container_startup_timeout_is_infrastructure_error(self):
+        process = MagicMock()
+        process.stdin = BytesIO()
+        process.stdout = BytesIO()
+        process.stderr = BytesIO()
+        process.poll.return_value = None
+        with patch.object(sandbox_runner.subprocess, "Popen", return_value=process), \
+                patch.object(sandbox_runner.subprocess, "run"):
+            result = sandbox_runner.run_code_in_sandbox("pass", "pass", startup_timeout=0.001)
+        self.assertEqual(result.status, "sandbox_error")
+
+    def test_readiness_detected_before_large_stderr_block(self):
+        ready = threading.Event()
+        initialized = threading.Event()
+        stream = BytesIO(b"READY\nINITIALIZED\n" + b"x" * 10000)
+        sandbox_runner._drain(stream, 100, [], True, ready, b"READY\n", initialized, b"INITIALIZED\n")
+        self.assertTrue(ready.is_set())
+        self.assertTrue(initialized.is_set())
 
 
 if __name__ == "__main__":

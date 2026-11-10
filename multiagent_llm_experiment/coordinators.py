@@ -76,7 +76,7 @@ class BaseCoordinator:
         if not valid_function(code, self._task.function_name, self._task.description):
             result = SandboxResult(False, "", "", "invalid_code", 0.0, "invalid_code")
         else:
-            result = run_code_in_sandbox(code, tests)
+            result = run_code_in_sandbox(code, tests, diagnostics=not evaluation)
         self._test_seconds += result.elapsed_seconds
         if evaluation:
             self._evaluation_status = result.status

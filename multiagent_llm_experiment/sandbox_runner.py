@@ -1,36 +1,20 @@
 from __future__ import annotations
 
+import ast
 import json
+import queue
 import secrets
 import subprocess
 import threading
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
-# Install explicitly before a run; --pull=never prevents implicit downloads.
 IMAGE = "python:3.12.8-alpine3.20@sha256:3b1df87fc50e7d47762aeb48673736079aa22e7c98c8851f5453dd49fc03ad1b"
 MAX_INPUT = 128 * 1024
 MAX_OUTPUT = 16 * 1024
-
-# This driver runs *inside* the container. The random completion token detects
-# accidental early exits, not a malicious candidate able to inspect its process.
-_DRIVER = r'''
-import json, sys
-payload = json.load(sys.stdin)
-namespace = {"__name__": "__candidate__"}
-try:
-    exec(compile(payload["code"], "<candidate>", "exec"), namespace)
-    exec(compile(payload["tests"], "<tests>", "exec"), namespace)
-except SyntaxError:
-    result = "invalid_code"
-except SystemExit:
-    result = "failed_tests"
-except BaseException:
-    result = "failed_tests"
-else:
-    result = "passed"
-sys.stderr.write("\n" + payload["token"] + ":" + result + "\n")
-'''
+MAX_RPC = 64 * 1024
+_DIR = Path(__file__).resolve().parent
 
 
 @dataclass
@@ -43,91 +27,196 @@ class SandboxResult:
     status: str = "sandbox_error"
 
 
-def _drain(stream, limit: int, chunks: list[bytes], keep_tail: bool = False) -> None:
+def _drain(stream, limit: int, chunks: list[bytes], keep_tail: bool = False,
+           ready=None, ready_marker: bytes = b"", initialized=None,
+           initialized_marker: bytes = b"") -> None:
     remaining = limit
+    pending = b""
     while True:
-        block = stream.read(4096)
+        block = stream.read1(4096) if hasattr(stream, "read1") else stream.read(4096)
         if not block:
             break
+        if (ready is not None and not ready.is_set()) or (initialized is not None and not initialized.is_set()):
+            combined = pending + block
+            if ready is not None and ready_marker in combined:
+                ready.set()
+            if initialized is not None and initialized_marker in combined:
+                initialized.set()
+            pending = combined[-max(len(ready_marker), len(initialized_marker), 256):]
         if keep_tail:
-            # Keep the final bytes so noisy candidates cannot accidentally hide
-            # the driver's completion record behind earlier stderr output.
             chunks[:] = [(b"".join(chunks) + block)[-limit:]]
         elif remaining:
             chunks.append(block[:remaining])
             remaining -= min(remaining, len(block))
 
 
-def run_code_in_sandbox(code: str, tests: str, timeout: int = 5) -> SandboxResult:
+def _command(name: str, script: str) -> list[str]:
+    return ["docker", "run", "--rm", "-i", "--name", name, "--pull=never",
+            "--network=none", "--read-only", "--user=65534:65534", "--cap-drop=ALL",
+            "--security-opt=no-new-privileges", "--pids-limit=64", "--memory=256m",
+            "--cpus=1", "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m",
+            IMAGE, "python", "-I", "-c", script]
+
+
+def run_code_in_sandbox(code: str, tests: str, timeout: int = 5,
+                        *, diagnostics: bool = False, startup_timeout: int = 20) -> SandboxResult:
+    """Run candidate and trusted assertions in separate, unconnected containers.
+
+    The host relays bounded JSON calls and never executes either source string.
+    Candidate output is only a function response, never an evaluator verdict.
+    """
     start = time.monotonic()
 
-    def result(status: str, message: str, stdout: str = "", stderr: str = "") -> SandboxResult:
-        return SandboxResult(status == "passed", stdout, stderr, message,
-                             time.monotonic() - start, status)
+    def result(status: str, message: str) -> SandboxResult:
+        return SandboxResult(status == "passed", "", "", message, time.monotonic() - start, status)
 
-    if timeout <= 0 or len(code.encode("utf-8")) + len(tests.encode("utf-8")) > MAX_INPUT:
+    if timeout <= 0 or startup_timeout <= 0 or len(code.encode("utf-8")) + len(tests.encode("utf-8")) > MAX_INPUT:
         return result("invalid_code", "Invalid timeout or input too large")
-    token = secrets.token_hex(24)
-    name = "llm-benchmark-" + secrets.token_hex(12)
-    payload = json.dumps({"code": code, "tests": tests, "token": token}).encode("utf-8")
-    command = ["docker", "run", "--rm", "-i", "--name", name,
-               "--pull=never", "--network=none", "--read-only", "--user=65534:65534",
-               "--cap-drop=ALL", "--security-opt=no-new-privileges", "--pids-limit=64",
-               "--memory=256m", "--cpus=1", "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m",
-               IMAGE, "python", "-I", "-c", _DRIVER]
-    proc = None
-    out, err = [], []
-    threads = []
     try:
-        proc = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-        for stream, chunks, keep_tail in ((proc.stdout, out, False), (proc.stderr, err, True)):
-            thread = threading.Thread(target=_drain, args=(stream, MAX_OUTPUT, chunks, keep_tail), daemon=True)
-            thread.start()
-            threads.append(thread)
+        tree = ast.parse(code)
+        ast.parse(tests)
+    except SyntaxError:
+        return result("invalid_code", "invalid_code")
+    functions = [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
+    processes = []
+    names = []
+    threads = []
+    worker_lines = queue.Queue(maxsize=4)
+    outcome = queue.Queue(maxsize=1)
+    ready_events = []
+    worker_initialized = threading.Event()
 
-        def feed() -> None:
+    def spawn(role: str, script_name: str, payload: dict):
+        name = "llm-benchmark-" + secrets.token_hex(12)
+        marker = "ready-" + secrets.token_hex(24)
+        initialized_marker = "initialized-" + secrets.token_hex(24)
+        script = (_DIR / script_name).read_text(encoding="utf-8")
+        proc = subprocess.Popen(_command(name, script), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        names.append(name)
+        processes.append(proc)
+        event = threading.Event()
+        ready_events.append(event)
+        thread = threading.Thread(target=_drain, args=(proc.stderr, MAX_OUTPUT, [], True,
+                                                       event, (marker + "\n").encode(),
+                                                       worker_initialized if role == "worker" else None,
+                                                       (initialized_marker + "\n").encode()), daemon=True)
+        thread.start()
+        threads.append(thread)
+        payload["ready"] = marker
+        if role == "worker":
+            payload["initialized"] = initialized_marker
+        data = (json.dumps(payload, ensure_ascii=True) + "\n").encode()
+
+        def feed():
             try:
-                proc.stdin.write(payload)
-                proc.stdin.close()
+                proc.stdin.write(data)
+                proc.stdin.flush()
             except (BrokenPipeError, OSError, ValueError):
                 pass
+        thread = threading.Thread(target=feed, daemon=True)
+        thread.start()
+        threads.append(thread)
+        return proc
 
-        threading.Thread(target=feed, daemon=True).start()
-        proc.wait(timeout=timeout)
-        for thread in threads:
-            thread.join(timeout=1)
-        stdout = b"".join(out).decode("utf-8", "replace")
-        stderr = b"".join(err).decode("utf-8", "replace")
-        marker = token + ":"
-        # The completion message is checked in addition to the Docker exit status.
-        matches = [line[len(marker):] for line in stderr.splitlines() if line.startswith(marker)]
-        if proc.returncode == 0 and len(matches) == 1 and matches[0] in {"passed", "failed_tests", "invalid_code"}:
-            status = matches[0]
-            return result(status, "" if status == "passed" else status, stdout, "")
-        return result("sandbox_error", "Container or test driver failed")
+    def read_worker(proc):
+        try:
+            while True:
+                line = proc.stdout.readline(MAX_RPC + 1)
+                if not line or len(line) > MAX_RPC or not line.endswith(b"\n"):
+                    worker_lines.put(None)
+                    return
+                worker_lines.put(line)
+        except (OSError, ValueError):
+            worker_lines.put(None)
+
+    def relay(evaluator, worker):
+        try:
+            while True:
+                line = evaluator.stdout.readline(MAX_RPC + 1)
+                if not line or len(line) > MAX_RPC or not line.endswith(b"\n"):
+                    outcome.put(("sandbox_error", "Evaluator protocol failed"))
+                    return
+                message = json.loads(line)
+                if not isinstance(message, dict):
+                    raise ValueError("invalid message")
+                if message.get("type") == "final":
+                    status = message.get("status")
+                    detail = message.get("diagnostic")
+                    if status not in {"passed", "failed_tests"} or not isinstance(detail, str):
+                        raise ValueError("invalid verdict")
+                    # A candidate that died before returning a response cannot pass.
+                    if status == "passed" and worker.poll() is not None:
+                        status, detail = "failed_tests", ""
+                    text = "" if status == "passed" else status
+                    if diagnostics and status == "failed_tests" and detail:
+                        text += ": " + detail[:512]
+                    outcome.put((status, text))
+                    return
+                if message.get("type") != "call":
+                    raise ValueError("invalid request")
+                try:
+                    worker.stdin.write(line)
+                    worker.stdin.flush()
+                    response = worker_lines.get(timeout=timeout + 1)
+                except (BrokenPipeError, OSError, ValueError, queue.Empty):
+                    response = None
+                if response is None:
+                    response = b'{"ok":false,"exception":"RuntimeError"}\n'
+                evaluator.stdin.write(response)
+                evaluator.stdin.flush()
+        except (ValueError, TypeError, json.JSONDecodeError, BrokenPipeError, OSError):
+            outcome.put(("sandbox_error", "Evaluator protocol failed"))
+
+    try:
+        worker = spawn("worker", "sandbox_worker.py", {"code": code})
+        thread = threading.Thread(target=read_worker, args=(worker,), daemon=True)
+        thread.start()
+        threads.append(thread)
+        evaluator = spawn("evaluator", "sandbox_evaluator.py",
+                          {"tests": tests, "functions": functions, "diagnostics": diagnostics})
+        deadline = time.monotonic() + startup_timeout
+        for proc, event in zip(processes, ready_events):
+            while not event.wait(0.05):
+                if proc.poll() is not None:
+                    return result("sandbox_error", "Container failed before test execution")
+                if time.monotonic() >= deadline:
+                    return result("sandbox_error", "Container startup timed out")
+        execution_deadline = time.monotonic() + timeout
+        while not worker_initialized.wait(0.05):
+            if worker.poll() is not None:
+                return result("failed_tests", "Candidate exited during initialization")
+            if time.monotonic() >= execution_deadline:
+                return result("candidate_timeout", "Candidate exceeded the execution time limit")
+        thread = threading.Thread(target=relay, args=(evaluator, worker), daemon=True)
+        thread.start()
+        threads.append(thread)
+        try:
+            status, message = outcome.get(timeout=max(0, execution_deadline - time.monotonic()))
+        except queue.Empty:
+            return result("candidate_timeout", "Candidate or tests exceeded the execution time limit")
+        return result(status, message)
     except FileNotFoundError:
         return result("sandbox_unavailable", "Docker is not installed or unavailable")
-    except subprocess.TimeoutExpired:
-        return result("sandbox_timeout", "Sandbox execution timed out")
     except OSError:
         return result("sandbox_error", "Could not start sandbox")
     finally:
-        if proc is not None:
-            # Kill the named container as well as the CLI, even on interruption.
+        for name in names:
             try:
                 subprocess.run(["docker", "rm", "-f", name], stdout=subprocess.DEVNULL,
                                stderr=subprocess.DEVNULL, timeout=5, check=False)
             except (OSError, subprocess.SubprocessError):
                 pass
+        for proc in processes:
             if proc.poll() is None:
                 proc.kill()
             try:
                 proc.wait(timeout=2)
             except subprocess.SubprocessError:
                 pass
-            for thread in threads:
-                thread.join(timeout=1)
+        for thread in threads:
+            thread.join(timeout=0.5)
+        for proc in processes:
             for stream in (proc.stdin, proc.stdout, proc.stderr):
                 if stream is not None and not stream.closed:
                     stream.close()

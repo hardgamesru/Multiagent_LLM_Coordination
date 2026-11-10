@@ -26,7 +26,8 @@ except ImportError:
 
 from coordinators import COORDINATORS, ExperimentResult
 from llm_client import BaseLLMClient, GigaChatClient, MockLLMClient
-from metrics import write_raw_results, write_summary_from_raw
+from metrics import append_raw_result, initialize_raw_results, write_summary_from_raw
+from sandbox_runner import run_code_in_sandbox
 from tasks import get_tasks
 from utils import ensure_directories, make_run_id
 
@@ -82,8 +83,8 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     if not output_dir.is_absolute():
         output_dir = project_dir / output_dir
-    llm_client = create_llm_client(args)
     if args.list_models:
+        llm_client = create_llm_client(args)
         if isinstance(llm_client, GigaChatClient):
             print("Available GigaChat models:")
             for model_name in llm_client.get_available_models():
@@ -91,6 +92,11 @@ def main() -> None:
         else:
             print("GigaChat key is not configured; available client is model=mock.")
         return
+
+    preflight = run_code_in_sandbox("def _preflight(): return 1", "assert _preflight() == 1", timeout=10)
+    if not preflight.success:
+        raise RuntimeError(f"Docker sandbox preflight failed ({preflight.status}); start Docker and install the pinned image before running the benchmark.")
+    llm_client = create_llm_client(args)
 
     experiment_id = uuid.uuid4().hex
     output_dir = output_dir / experiment_id
@@ -113,7 +119,7 @@ def main() -> None:
         commit = None
         dirty = None
     revisions = {name: hashlib.sha256((project_dir / name).read_bytes()).hexdigest()
-                 for name in ("tasks.py", "prompts.py")}
+                 for name in ("tasks.py", "prompts.py", "sandbox_runner.py", "sandbox_worker.py", "sandbox_evaluator.py")}
     try:
         gigachat_version = metadata.version("gigachat")
     except metadata.PackageNotFoundError:
@@ -127,9 +133,12 @@ def main() -> None:
                 "git_tracked_files_dirty": dirty, "model_parameters": "provider defaults; not exposed",
                 "revisions_sha256": revisions, "seed_control": "not supported by this client",
                 "sandbox_image": __import__("sandbox_runner").IMAGE,
-                "sandbox_limits": {"timeout_seconds": 5, "memory": "256m", "cpus": 1, "pids": 64}}
+                "sandbox_executor": "two-container-rpc-v1",
+                "sandbox_limits": {"timeout_seconds": 5, "containers": 2, "memory_per_container": "256m", "cpus_per_container": 1, "pids_per_container": 64}}
     (output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    results: list[ExperimentResult] = []
+    raw_path = output_dir / "raw_results.csv"
+    summary_path = output_dir / "summary_results.csv"
+    initialize_raw_results(raw_path)
     for architecture in args.architectures:
         coordinator_cls = COORDINATORS[architecture]
         coordinator = coordinator_cls(
@@ -144,13 +153,10 @@ def main() -> None:
                 result = coordinator.run(task, run_id)
                 result.experiment_id = experiment_id
                 result.repeat_index = repeat
-                results.append(result)
+                append_raw_result(result, raw_path)
+                write_summary_from_raw(raw_path, summary_path, replace=True)
                 print(f"  {result.status}: iterations={result.iterations}, llm_calls={result.llm_calls}")
 
-    raw_path = output_dir / "raw_results.csv"
-    summary_path = output_dir / "summary_results.csv"
-    write_raw_results(results, raw_path)
-    write_summary_from_raw(raw_path, summary_path)
     print(f"Raw results: {raw_path}")
     print(f"Summary results: {summary_path}")
 

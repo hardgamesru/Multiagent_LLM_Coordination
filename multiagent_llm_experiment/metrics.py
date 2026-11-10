@@ -1,6 +1,8 @@
 """CSV recording and deterministic summaries for protocol v2."""
 import csv
+import os
 import statistics
+import tempfile
 from dataclasses import asdict
 from pathlib import Path
 
@@ -12,20 +14,33 @@ RAW_COLUMNS = ["experiment_id", "run_id", "repeat_index", "timestamp", "task_id"
 SUMMARY_COLUMNS = ["architecture", "model", "runs", "eligible", "passed", "success_rate",
                    "repeat_success_rate_stddev", "infrastructure_failures", "infrastructure_failure_rate",
                    "generation_or_provider_failures", "avg_llm_calls"]
-ELIGIBLE = {"passed", "failed_tests", "invalid_code"}
+ELIGIBLE = {"passed", "failed_tests", "invalid_code", "candidate_timeout"}
 INFRA = {"sandbox_timeout", "sandbox_error", "sandbox_unavailable"}
 
 
-def write_raw_results(results, output_path: Path) -> None:
+def initialize_raw_results(output_path: Path) -> None:
     with output_path.open("x", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=RAW_COLUMNS, extrasaction="ignore")
         writer.writeheader()
-        for result in results:
-            row = asdict(result)
-            if not row["usage_available"]:
-                for field in ("input_tokens", "output_tokens", "total_tokens"):
-                    row[field] = ""
-            writer.writerow(row)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def append_raw_result(result, output_path: Path) -> None:
+    row = asdict(result)
+    if not row["usage_available"]:
+        for field in ("input_tokens", "output_tokens", "total_tokens"):
+            row[field] = ""
+    with output_path.open("a", newline="", encoding="utf-8") as stream:
+        csv.DictWriter(stream, fieldnames=RAW_COLUMNS, extrasaction="ignore").writerow(row)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def write_raw_results(results, output_path: Path) -> None:
+    initialize_raw_results(output_path)
+    for result in results:
+        append_raw_result(result, output_path)
 
 
 def summarize(rows):
@@ -54,13 +69,29 @@ def summarize(rows):
     return output
 
 
-def write_summary_from_raw(raw_path: Path, output_path: Path) -> None:
+def write_summary_from_raw(raw_path: Path, output_path: Path, *, replace: bool = False) -> None:
     with raw_path.open(newline="", encoding="utf-8") as stream:
         rows = summarize(list(csv.DictReader(stream)))
-    with output_path.open("x", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=SUMMARY_COLUMNS)
-        writer.writeheader()
-        writer.writerows(rows)
+    if not replace:
+        with output_path.open("x", newline="", encoding="utf-8") as stream:
+            writer = csv.DictWriter(stream, fieldnames=SUMMARY_COLUMNS)
+            writer.writeheader()
+            writer.writerows(rows)
+        return
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", newline="", encoding="utf-8", dir=output_path.parent,
+                                         prefix=".summary-", suffix=".tmp", delete=False) as stream:
+            temporary = Path(stream.name)
+            writer = csv.DictWriter(stream, fieldnames=SUMMARY_COLUMNS)
+            writer.writeheader()
+            writer.writerows(rows)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, output_path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def write_summary_results(results, output_path: Path) -> None:

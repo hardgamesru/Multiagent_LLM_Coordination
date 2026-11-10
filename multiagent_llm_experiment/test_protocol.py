@@ -30,9 +30,10 @@ class ProtocolTests(unittest.TestCase):
                 with self.subTest(architecture=architecture, dev=dev_status, evaluation=eval_status):
                     events = []
 
-                    def runner(code, tests):
+                    def runner(code, tests, *, diagnostics=False):
                         kind = "eval" if tests == task.hidden_tests else "dev"
                         self.assertIn(tests, (task.hidden_tests, task.development_tests))
+                        self.assertEqual(diagnostics, kind == "dev")
                         events.append((kind, code))
                         status = eval_status if kind == "eval" else dev_status
                         return SandboxResult(status == "passed", "", "", status, 0.0, status)
@@ -52,7 +53,7 @@ class ProtocolTests(unittest.TestCase):
         task = get_tasks()[0]
         for name in ("feedback_graph", "parallel_consensus"):
             events = []
-            def runner(code, tests):
+            def runner(code, tests, *, diagnostics=False):
                 events.append(("dev", code))
                 return SandboxResult(False, "", "", "sandbox_error", 0.0, "sandbox_error")
             with self.subTest(architecture=name), tempfile.TemporaryDirectory() as directory, patch("coordinators.run_code_in_sandbox", runner):
@@ -65,6 +66,23 @@ class ProtocolTests(unittest.TestCase):
         for task in get_tasks():
             self.assertTrue(task.development_tests.strip())
             self.assertNotIn(task.development_tests.strip(), task.hidden_tests)
+
+    def test_feedback_includes_only_development_diagnostic(self):
+        task = get_tasks()[0]
+        events = []
+        diagnostic = 'AssertionError at development test line 1: assert example == expected'
+        def runner(code, tests, *, diagnostics=False):
+            events.append(("eval" if tests == task.hidden_tests else "dev", code))
+            if tests == task.hidden_tests:
+                self.assertFalse(diagnostics)
+                return SandboxResult(False, "", "", "failed_tests", 0, "failed_tests")
+            self.assertTrue(diagnostics)
+            return SandboxResult(False, "", "", diagnostic, 0, "failed_tests")
+        with tempfile.TemporaryDirectory() as directory, patch("coordinators.run_code_in_sandbox", runner):
+            COORDINATORS["feedback_graph"](RecordingClient(events), Path(directory), 2).run(task, "test")
+        prompts = [text for kind, text in events if kind == "model"]
+        self.assertTrue(any(diagnostic in prompt for prompt in prompts))
+        self.assertTrue(all(task.hidden_tests not in prompt for prompt in prompts))
 
 
 if __name__ == "__main__":
