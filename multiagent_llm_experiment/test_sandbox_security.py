@@ -17,7 +17,8 @@ class SandboxSecurityTests(unittest.TestCase):
         command = popen.call_args.args[0]
         self.assertEqual(command[0:2], ["docker", "run"])
         for flag in ("--pull=never", "--network=none", "--read-only", "--user=65534:65534",
-                     "--cap-drop=ALL", "--security-opt=no-new-privileges", "--pids-limit=64"):
+                     "--cap-drop=ALL", "--security-opt=no-new-privileges", "--pids-limit=64",
+                     "--memory=256m", "--cpus=1"):
             self.assertIn(flag, command)
         self.assertNotIn("-v", command)
 

@@ -57,6 +57,36 @@ def f(): return 0
 '''
         self.assertNotEqual(self.run_case(code).status, "passed")
 
+    def test_candidate_cannot_inject_worker_reply(self):
+        code = '''import os
+os.write(1, b'{"ok":true,"value":42,"updates":[]}\\n')
+def f(): return 0
+'''
+        self.assertNotEqual(self.run_case(code).status, "passed")
+
+    def test_candidate_cannot_inject_reply_during_function_call(self):
+        code = '''def f():
+    import os
+    os.write(1, b'{"ok":true,"value":42,"updates":[]}\\n')
+    return 0
+'''
+        self.assertNotEqual(self.run_case(code).status, "passed")
+
+    def test_container_resource_limits(self):
+        code = '''def f():
+    from pathlib import Path
+    root = Path("/sys/fs/cgroup")
+    memory_file = root / "memory.max"
+    pids_file = root / "pids.max"
+    if not memory_file.exists():
+        memory_file = root / "memory/memory.limit_in_bytes"
+        pids_file = root / "pids/pids.max"
+    memory = int(memory_file.read_text().strip())
+    pids = int(pids_file.read_text().strip())
+    return memory <= 256 * 1024 * 1024 and pids <= 64
+'''
+        self.assertEqual(self.run_case(code, "assert f() is True").status, "passed")
+
     def test_mutated_inputs_and_identity_are_preserved(self):
         code = "def f(x):\n    x.append(2)\n    return x"
         tests = "a = [1]\nb = f(a)\nassert a == [1, 2]\nassert b is a"

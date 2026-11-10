@@ -63,7 +63,9 @@ def run_code_in_sandbox(code: str, tests: str, timeout: int = 5,
     """Run candidate and trusted assertions in separate, unconnected containers.
 
     The host relays bounded JSON calls and never executes either source string.
-    Candidate output is only a function response, never an evaluator verdict.
+    WARNING: candidate-controlled stdout can forge a function response. The
+    separate evaluator does not provide response integrity; do not use this
+    backend to assess adversarial candidates until the boundary is redesigned.
     """
     start = time.monotonic()
 
