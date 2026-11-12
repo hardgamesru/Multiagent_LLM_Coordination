@@ -1,0 +1,42 @@
+{
+  "v2_path": "multiagent_llm_experiment",
+  "git_revision": "5e469e9cfcb185ae9650136dc5c539a9dad50256",
+  "tracked_worktree_status": "M ../README.md\n M main.py\n M sandbox_evaluator.py\n M sandbox_runner.py\n M sandbox_worker.py\n M test_sandbox_integration.py",
+  "v2_sha256": {
+    "agents.py": "5fc9622efa7a9fff2811b6ef1f836f8cfecd5fb04d0d19808db10d8cedf96008",
+    "analyze_results.py": "5c122f567ee666d8ce39a1dfff7e5063c03cec0d666aa79387d4989323580ec8",
+    "coordinators.py": "8a91d24d0c1fcd228b8cf2292c0192d156adf3194a24256e6c46b95fb1a4f300",
+    "llm_client.py": "75b554347e0d1d6acf07c9c76a869f519dfa23a5a365d9afb61b3978fce71029",
+    "main.py": "f9b3216ac02ca40bdbfaf763d5c1506ea835fe2ae4b4d42e1e232033acac2285",
+    "metrics.py": "fc244ca4daf76943630e5f78a3177625d7571eb5df13f832df38f798f506ccc3",
+    "prompts.py": "efc1502349e234cc9fa1c8403b8a7fd430fdcb3513320deeee076750f369cab1",
+    "sandbox_evaluator.py": "86263d6dfaf1ffe4a0cda6c8ea44dee7e140031f14e131b42f32f5636d0f61c9",
+    "sandbox_runner.py": "d927434cc3689ad52048cff154a298459bb4243bc5c446e0c60a75ca4d151954",
+    "sandbox_supervisor.py": "c0a21a6241cd26d5056e2bb430285a616c56ac2cc979ca1906202f563e04bdda",
+    "sandbox_worker.py": "a3d66560f0f8a366f5fa9476d08bba15a4e6057f8ac31902879ed02c53f43c8d",
+    "tasks.py": "3640cdf2a2e6e8bab6b9e3a0b25cc0f430f34513d75f9511ebf07632f8c8878f",
+    "test_protocol.py": "c89866409ad8772ec18af1514af4945afdafbe312f315b1acdc9fce1e34e8aad",
+    "test_quality_check.py": "e4e27d658c9bab179e562d05f877378fca499381fbccf09254714a8c1fc410ad",
+    "test_recording.py": "531e41dad9a07989661540257252a39a9609b8d272388c57f4578f2b42351258",
+    "test_sandbox_integration.py": "21c9cc594aab64274328027c5f6ffb688c9011a5f94227e1f4b0c9b634bf5352",
+    "test_sandbox_security.py": "b962bb6416edc1e7371102bb31987883598f9c2e5c22532b99fc66872b09482b",
+    "test_task_quality.py": "a8be007abb01ea4f642e46ca5fbb7adc145de5c20a4219acaa52fb93e3fa3a39",
+    "utils.py": "8f08eaf11d5e3419755b5177c46790ca6cb133b836f6ab95f0437b335bf382eb"
+  },
+  "runner_sha256": {
+    "adapter.py": "edd7e27344aeb8abc9b6c15b16067f61c7d27712bf4cec644edb40b87b316897",
+    "analyze_pilot.py": "cbead7299f748c508cb263a5bb383b2c3a0d3e681d26808091bdcc8c2564bfe5",
+    "archive_v2.py": "8ae8a5c61bd9ff1d11912d0510503602e01e7e5f50525f8e5ade2f270ec41c86",
+    "catalog.py": "29e1197b83ede1a9707892bb560ca4185af320e118cff76e8841bfd076fa6001",
+    "freeze.py": "681f3f4c9064dd2e656b8f01a3c9f9cc35c0a179fb5e910955bbce928cab1be9",
+    "ledger.py": "60ed046e284185568bbfbdde4e8d05a3a8f12ad2edba1ccba17e06a43bef1706",
+    "references.py": "1f4e2b48a8ca4e3f7f0fbb3d5e305571a4b79245c8a69ce5edede3d5b76bfc3d",
+    "runner.py": "38479ee4052952b0b2c6f269709012cd35863a50361fb2698a1c650e3c42f35b",
+    "test_runner.py": "551a7ea203f3ddac5be277c109b196a34d882d74c28b1d5cb23b3ad6fdb66c4d",
+    "test_validation.py": "6da47d9145aefde75a2f924aab67ea438980c77744e78b393f38526be7e70a73",
+    "transport.py": "06e0525d8e1580cff69c2b6e9aee3308a59da5b3a847acc2d1d7750f147efc34",
+    "validate.py": "4c7705c67c7e5d08f7148afb883507a62981cec72da2fc06c235a6eb40c9e230",
+    "__init__.py": "b845ff053b22750318c92cc49daa09b72b27de0f831f3f766e21e62da82e9c84"
+  },
+  "preparation_manifest_sha256": "9e122ac29c1ddf8fdf628447ced6d389b978b7965da9b91b393153deb2eba537"
+}

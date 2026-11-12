@@ -1,7 +1,16 @@
 """Trusted-side evaluator. Never receives or executes candidate source."""
 import json
+import math
 import sys
 import traceback
+
+
+EXCEPTIONS = {exc.__name__: exc for exc in (ValueError, TypeError, KeyError, IndexError, RuntimeError)}
+protocol_failed = False
+
+
+class CandidateProtocolError(BaseException):
+    pass
 
 
 def encode(value, references, identities, depth=0):
@@ -30,52 +39,84 @@ def encode(value, references, identities, depth=0):
 def decode(value, references, depth=0):
     if depth > 64:
         raise ValueError("result nesting too deep")
-    if not isinstance(value, dict):
-        if value is None or type(value) in (bool, int, float, str):
+    if type(value) is not dict:
+        if value is None or type(value) in (bool, int, str) or (type(value) is float and math.isfinite(value)):
             return value
         raise ValueError("invalid result")
     kind = value.get("t")
-    if kind == "ref":
+    if kind == "ref" and value.keys() == {"t", "id"} and type(value["id"]) is int:
         return references[value["id"]]
+    if value.keys() != {"t", "v"}:
+        raise ValueError("invalid result fields")
+    return decode_container(kind, value["v"], references, depth)
+
+
+def decode_container(kind, values, references, depth=0):
+    if type(values) is not list:
+        raise ValueError("invalid container payload")
     if kind == "list":
-        return [decode(item, references, depth + 1) for item in value["v"]]
+        return [decode(item, references, depth + 1) for item in values]
     if kind == "tuple":
-        return tuple(decode(item, references, depth + 1) for item in value["v"])
+        return tuple(decode(item, references, depth + 1) for item in values)
     if kind == "dict":
-        return {decode(k, references, depth + 1): decode(v, references, depth + 1) for k, v in value["v"]}
+        entries = {}
+        for pair in values:
+            if type(pair) is not list or len(pair) != 2:
+                raise ValueError("invalid dictionary entry")
+            key, item = pair
+            entries[decode(key, references, depth + 1)] = decode(item, references, depth + 1)
+        return entries
     raise ValueError("invalid result type")
+
+
+def read_response(references):
+    line = sys.stdin.readline(65537)
+    if not line.endswith("\n") or len(line) > 65536:
+        raise ValueError("candidate response unavailable")
+    envelope = json.loads(line)
+    if envelope["type"] != "reply":
+        raise ValueError("invalid supervisor reply")
+    response = envelope["response"]
+    mutable = {key: value for key, value in references.items() if type(value) in (list, dict)}
+    updates = []
+    for update in response["updates"]:
+        if update.keys() != {"id", "t", "v"} or type(update["id"]) is not int:
+            raise ValueError("invalid candidate update")
+        target = mutable.pop(update["id"])
+        if update["t"] != type(target).__name__:
+            raise ValueError("invalid candidate update type")
+        updates.append((target, decode_container(update["t"], update["v"], references)))
+    if mutable:
+        raise ValueError("missing candidate updates")
+    if response["ok"]:
+        value, exception = decode(response["value"], references), None
+    else:
+        value, exception = None, EXCEPTIONS[response["exception"]]
+    # Validate the entire graph before changing any evaluator-side object.
+    for target, replacement in updates:
+        if type(target) is list:
+            target[:] = replacement
+        else:
+            target.clear()
+            target.update(replacement)
+    return value, exception
 
 
 def make_proxy(name):
     def call(*args, **kwargs):
+        global protocol_failed
         references, identities = {}, {}
-        request = {"type": "call", "name": name, "args": encode(args, references, identities),
-                   "kwargs": encode(kwargs, references, identities)}
-        print(json.dumps(request, allow_nan=False, separators=(",", ":")), flush=True)
-        line = sys.stdin.readline(65537)
-        if not line or len(line) > 65536:
-            raise RuntimeError("candidate response unavailable")
-        response = json.loads(line)
-        if not isinstance(response, dict) or type(response.get("ok")) is not bool:
-            raise RuntimeError("invalid candidate response")
-        updates = response.get("updates", [])
-        if not isinstance(updates, list) or len(updates) > len(references):
-            raise RuntimeError("invalid candidate updates")
-        for update in updates:
-            target = references[update["id"]]
-            if update["t"] == "list" and type(target) is list:
-                target[:] = [decode(item, references) for item in update["v"]]
-            elif update["t"] == "dict" and type(target) is dict:
-                entries = [(decode(k, references), decode(v, references)) for k, v in update["v"]]
-                target.clear()
-                target.update(entries)
-            else:
-                raise RuntimeError("invalid candidate update type")
-        if not response["ok"]:
-            exc = {"ValueError": ValueError, "TypeError": TypeError, "KeyError": KeyError,
-                   "IndexError": IndexError}.get(response.get("exception"), RuntimeError)
-            raise exc("candidate raised an exception")
-        return decode(response["value"], references)
+        try:
+            request = {"type": "call", "name": name, "args": encode(args, references, identities),
+                       "kwargs": encode(kwargs, references, identities)}
+            print(json.dumps(request, allow_nan=False, separators=(",", ":")), flush=True)
+            value, exception = read_response(references)
+        except Exception as exc:
+            protocol_failed = True
+            raise CandidateProtocolError("candidate transport failed") from exc
+        if exception is not None:
+            raise exception("candidate raised an exception")
+        return value
     return call
 
 
@@ -95,5 +136,5 @@ except BaseException as exc:
             line = lines[frame.lineno - 1].strip() if 0 < frame.lineno <= len(lines) else ""
             diagnostic = (type(exc).__name__ + " at development test line " + str(frame.lineno) + ": " + line)[:512]
 else:
-    status = "passed"
+    status = "failed_tests" if protocol_failed else "passed"
 print(json.dumps({"type": "final", "status": status, "diagnostic": diagnostic}), flush=True)

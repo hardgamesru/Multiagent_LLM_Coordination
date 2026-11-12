@@ -1,0 +1,8 @@
+{
+  "client_date": "2026-11-12",
+  "timezone": "Asia/Barnaul",
+  "user_confirmation": "Да, одобряю новый полный прогон на 120 оценок",
+  "scope": "20 preregistered tasks x 2 models x 3 architectures x 1 repetition; all prior costs and 69632 unknown-request reservation retained within shared 1000000-token ceiling",
+  "generation_limit": 4096,
+  "earlier_attempt_excluded_from_research_comparison": "d682d606a0ee4fc69d0e6b3cee054efb"
+}

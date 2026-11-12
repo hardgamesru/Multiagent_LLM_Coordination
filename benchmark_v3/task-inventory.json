@@ -1,0 +1,3248 @@
+[
+  {
+    "task_id": "v3_01",
+    "name": "encode_runs",
+    "difficulty": "easy",
+    "domain": "data processing",
+    "rationale": "One pass with adjacent-state tracking.",
+    "specification": "Implement encode_runs(text: str) -> list[list]. Return consecutive Unicode character runs as [character, positive_count], preserving case and spaces. Empty string returns []. Length <= 2000.",
+    "development": [
+      {
+        "args": [
+          "aaabb"
+        ],
+        "expected": [
+          [
+            "a",
+            3
+          ],
+          [
+            "b",
+            2
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          ""
+        ],
+        "expected": [],
+        "error": null
+      },
+      {
+        "args": [
+          "aAa"
+        ],
+        "expected": [
+          [
+            "a",
+            1
+          ],
+          [
+            "A",
+            1
+          ],
+          [
+            "a",
+            1
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "  "
+        ],
+        "expected": [
+          [
+            " ",
+            2
+          ]
+        ],
+        "error": null
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          "x"
+        ],
+        "expected": [
+          [
+            "x",
+            1
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "abbaa"
+        ],
+        "expected": [
+          [
+            "a",
+            1
+          ],
+          [
+            "b",
+            2
+          ],
+          [
+            "a",
+            2
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "яя🙂🙂"
+        ],
+        "expected": [
+          [
+            "я",
+            2
+          ],
+          [
+            "🙂",
+            2
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "\n\n\t"
+        ],
+        "expected": [
+          [
+            "\n",
+            2
+          ],
+          [
+            "\t",
+            1
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "11122"
+        ],
+        "expected": [
+          [
+            "1",
+            3
+          ],
+          [
+            "2",
+            2
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "abab"
+        ],
+        "expected": [
+          [
+            "a",
+            1
+          ],
+          [
+            "b",
+            1
+          ],
+          [
+            "a",
+            1
+          ],
+          [
+            "b",
+            1
+          ]
+        ],
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_02",
+    "name": "rotate_grid",
+    "difficulty": "easy",
+    "domain": "data structures",
+    "rationale": "Index mapping on a rectangular structure.",
+    "specification": "Implement rotate_grid(grid: list[list[int]]) -> list[list[int]]. Rotate a rectangular grid 90 degrees clockwise. [] returns []; any empty row or unequal row lengths raises ValueError. Dimensions <= 30.",
+    "development": [
+      {
+        "args": [
+          [
+            [
+              1,
+              2
+            ],
+            [
+              3,
+              4
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            3,
+            1
+          ],
+          [
+            4,
+            2
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          []
+        ],
+        "expected": [],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              1,
+              2,
+              3
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            1
+          ],
+          [
+            2
+          ],
+          [
+            3
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            []
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              3
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            3,
+            2,
+            1
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              7
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            7
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              1,
+              2,
+              3
+            ],
+            [
+              4,
+              5,
+              6
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            6,
+            3
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              1
+            ],
+            [
+              2,
+              3
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            [],
+            []
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            [
+              -1,
+              0
+            ],
+            [
+              2,
+              -3
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            2,
+            -1
+          ],
+          [
+            -3,
+            0
+          ]
+        ],
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_03",
+    "name": "range_sums",
+    "difficulty": "easy",
+    "domain": "algorithms",
+    "rationale": "Prefix sums and half-open boundary validation.",
+    "specification": "Implement range_sums(values: list[int], queries: list[list[int]]) -> list[int]. For each [left,right] return sum(values[left:right]). Require 0 <= left <= right <= len(values), otherwise raise ValueError for the entire call. Empty intervals sum to 0. <=2000 values and queries.",
+    "development": [
+      {
+        "args": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              3
+            ]
+          ]
+        ],
+        "expected": [
+          3,
+          5
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [],
+          []
+        ],
+        "expected": [],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            5
+          ],
+          [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        ],
+        "expected": [
+          0,
+          5
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            1
+          ],
+          [
+            [
+              -1,
+              1
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          [
+            -2,
+            4,
+            -1
+          ],
+          [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              3
+            ]
+          ]
+        ],
+        "expected": [
+          1,
+          0,
+          -1
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [],
+          [
+            [
+              0,
+              0
+            ]
+          ]
+        ],
+        "expected": [
+          0
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            9,
+            8
+          ],
+          []
+        ],
+        "expected": [],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            1
+          ],
+          [
+            [
+              0,
+              2
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            1,
+            2
+          ],
+          [
+            [
+              2,
+              1
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            0,
+            0
+          ],
+          [
+            [
+              0,
+              2
+            ],
+            [
+              2,
+              2
+            ]
+          ]
+        ],
+        "expected": [
+          0,
+          0
+        ],
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_04",
+    "name": "merge_records",
+    "difficulty": "easy",
+    "domain": "software engineering",
+    "rationale": "Stable identity grouping with last-write field semantics.",
+    "specification": "Implement merge_records(records: list[dict]) -> list[dict]. Every record has a string id. Merge records with the same id by field update in encounter order, later values replacing earlier values including None. Output ids in first-appearance order. Fields hold JSON scalars. <=200 records.",
+    "development": [
+      {
+        "args": [
+          [
+            {
+              "id": "a",
+              "x": 1
+            },
+            {
+              "id": "a",
+              "y": 2
+            }
+          ]
+        ],
+        "expected": [
+          {
+            "id": "a",
+            "x": 1,
+            "y": 2
+          }
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          []
+        ],
+        "expected": [],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            {
+              "id": "b"
+            },
+            {
+              "id": "a"
+            },
+            {
+              "id": "b",
+              "x": null
+            }
+          ]
+        ],
+        "expected": [
+          {
+            "id": "b",
+            "x": null
+          },
+          {
+            "id": "a"
+          }
+        ],
+        "error": null
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          [
+            {
+              "id": "z",
+              "x": 2
+            },
+            {
+              "id": "z",
+              "x": 0
+            }
+          ]
+        ],
+        "expected": [
+          {
+            "id": "z",
+            "x": 0
+          }
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            {
+              "id": ""
+            }
+          ]
+        ],
+        "expected": [
+          {
+            "id": ""
+          }
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            {
+              "id": "x",
+              "a": false
+            },
+            {
+              "id": "y",
+              "a": 1
+            },
+            {
+              "id": "x",
+              "a": null
+            }
+          ]
+        ],
+        "expected": [
+          {
+            "id": "x",
+            "a": null
+          },
+          {
+            "id": "y",
+            "a": 1
+          }
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            {
+              "id": "1"
+            },
+            {
+              "id": "2"
+            },
+            {
+              "id": "1"
+            }
+          ]
+        ],
+        "expected": [
+          {
+            "id": "1"
+          },
+          {
+            "id": "2"
+          }
+        ],
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_05",
+    "name": "normalize_path",
+    "difficulty": "medium",
+    "domain": "parsing",
+    "rationale": "Stack processing with root and literal-name distinctions.",
+    "specification": "Implement normalize_path(path: str) -> str for POSIX absolute paths. Collapse repeated /, remove . segments, and resolve .. without going above root. Preserve all other segment text, including spaces and ... . Reject paths not starting with / using ValueError. No filesystem access. Length <=2000.",
+    "development": [
+      {
+        "args": [
+          "/a//b/../c"
+        ],
+        "expected": "/a/c",
+        "error": null
+      },
+      {
+        "args": [
+          "/"
+        ],
+        "expected": "/",
+        "error": null
+      },
+      {
+        "args": [
+          "/../../x/"
+        ],
+        "expected": "/x",
+        "error": null
+      },
+      {
+        "args": [
+          "a/b"
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          "/a/./b/"
+        ],
+        "expected": "/a/b",
+        "error": null
+      },
+      {
+        "args": [
+          "////"
+        ],
+        "expected": "/",
+        "error": null
+      },
+      {
+        "args": [
+          "/a/../.."
+        ],
+        "expected": "/",
+        "error": null
+      },
+      {
+        "args": [
+          "/.../a b"
+        ],
+        "expected": "/.../a b",
+        "error": null
+      },
+      {
+        "args": [
+          ""
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          "/x/.hidden/.."
+        ],
+        "expected": "/x",
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_06",
+    "name": "split_fields",
+    "difficulty": "medium",
+    "domain": "parsing",
+    "rationale": "Finite-state quote and escape handling.",
+    "specification": "Implement split_fields(text: str) -> list[str]. Unquoted semicolons separate fields; preserve empty fields and whitespace. Single or double quotes can begin inside a field and are removed; matching quote ends quoting, opposite quote is literal inside quotes. Backslash anywhere escapes exactly the next character and is removed. A dangling escape or unclosed quote raises ValueError. Empty input returns ['']. Length <=2000.",
+    "development": [
+      {
+        "args": [
+          "a;\"b;c\""
+        ],
+        "expected": [
+          "a",
+          "b;c"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          ""
+        ],
+        "expected": [
+          ""
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "a\\;b;c"
+        ],
+        "expected": [
+          "a;b",
+          "c"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "'bad"
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          ";x;"
+        ],
+        "expected": [
+          "",
+          "x",
+          ""
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "a'bc'd;z"
+        ],
+        "expected": [
+          "abcd",
+          "z"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "\"x'y\"; q "
+        ],
+        "expected": [
+          "x'y",
+          " q "
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "\"\";''"
+        ],
+        "expected": [
+          "",
+          ""
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "x\\\\;y"
+        ],
+        "expected": [
+          "x\\",
+          "y"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "x\\"
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          "\"a\\\"b\""
+        ],
+        "expected": [
+          "a\"b"
+        ],
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_07",
+    "name": "window_minima",
+    "difficulty": "medium",
+    "domain": "data structures",
+    "rationale": "Sliding-window state, duplicate values and eviction.",
+    "specification": "Implement window_minima(values: list[int], width: int) -> list[int]. Return the minimum of each consecutive window of exactly width elements. Require 1 <= width <= len(values), else ValueError. <=5000 values.",
+    "development": [
+      {
+        "args": [
+          [
+            4,
+            2,
+            3,
+            1
+          ],
+          2
+        ],
+        "expected": [
+          2,
+          2,
+          1
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            8
+          ],
+          1
+        ],
+        "expected": [
+          8
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [],
+          1
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            1
+          ],
+          0
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          [
+            2,
+            2,
+            2
+          ],
+          2
+        ],
+        "expected": [
+          2,
+          2
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            1,
+            2,
+            3,
+            4
+          ],
+          3
+        ],
+        "expected": [
+          1,
+          2
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            4,
+            3,
+            2,
+            1
+          ],
+          3
+        ],
+        "expected": [
+          2,
+          1
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            -1,
+            -3,
+            0
+          ],
+          1
+        ],
+        "expected": [
+          -1,
+          -3,
+          0
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            3,
+            1,
+            2
+          ],
+          3
+        ],
+        "expected": [
+          1
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            1,
+            2
+          ],
+          3
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ]
+  },
+  {
+    "task_id": "v3_08",
+    "name": "build_layers",
+    "difficulty": "medium",
+    "domain": "graph algorithms",
+    "rationale": "Deterministic simultaneous topological layers and cycle rejection.",
+    "specification": "Implement build_layers(dependencies: dict[str,list[str]]) -> list[list[str]]. A key depends on every listed node. Include dependency-only nodes; duplicate edges count once. Repeatedly output all currently dependency-free remaining nodes sorted lexicographically as one layer, then remove them simultaneously. Cycle anywhere raises ValueError. <=100 nodes.",
+    "development": [
+      {
+        "args": [
+          {
+            "app": [
+              "lib"
+            ],
+            "lib": []
+          }
+        ],
+        "expected": [
+          [
+            "lib"
+          ],
+          [
+            "app"
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          {}
+        ],
+        "expected": [],
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "b": [],
+            "a": []
+          }
+        ],
+        "expected": [
+          [
+            "a",
+            "b"
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "x": [
+              "x"
+            ]
+          }
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          {
+            "a": [
+              "b",
+              "b"
+            ],
+            "c": [
+              "b"
+            ]
+          }
+        ],
+        "expected": [
+          [
+            "b"
+          ],
+          [
+            "a",
+            "c"
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "a": [
+              "b"
+            ],
+            "b": [
+              "c"
+            ],
+            "z": []
+          }
+        ],
+        "expected": [
+          [
+            "c",
+            "z"
+          ],
+          [
+            "b"
+          ],
+          [
+            "a"
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "a": [
+              "b"
+            ],
+            "b": [
+              "a"
+            ],
+            "z": []
+          }
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          {
+            "leaf": []
+          }
+        ],
+        "expected": [
+          [
+            "leaf"
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "x": [
+              "a",
+              "b"
+            ],
+            "a": [
+              "c"
+            ],
+            "b": [
+              "c"
+            ]
+          }
+        ],
+        "expected": [
+          [
+            "c"
+          ],
+          [
+            "a",
+            "b"
+          ],
+          [
+            "x"
+          ]
+        ],
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_09",
+    "name": "shortest_distances",
+    "difficulty": "medium",
+    "domain": "graph algorithms",
+    "rationale": "Weighted shortest paths with unreachable nodes and parallel edges.",
+    "specification": "Implement shortest_distances(edges: list[list], source: str) -> dict. Each [u,v,w] is a directed edge with nonnegative integer weight. Include every endpoint and source. Return shortest distance from source, or None for unreachable nodes. Any negative weight anywhere raises ValueError. Allow loops and parallel edges. <=100 nodes, 500 edges.",
+    "development": [
+      {
+        "args": [
+          [
+            [
+              "a",
+              "b",
+              3
+            ],
+            [
+              "a",
+              "c",
+              1
+            ],
+            [
+              "c",
+              "b",
+              1
+            ]
+          ],
+          "a"
+        ],
+        "expected": {
+          "a": 0,
+          "b": 2,
+          "c": 1
+        },
+        "error": null
+      },
+      {
+        "args": [
+          [],
+          "s"
+        ],
+        "expected": {
+          "s": 0
+        },
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              "x",
+              "y",
+              -1
+            ]
+          ],
+          "s"
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          [
+            [
+              "x",
+              "y",
+              2
+            ]
+          ],
+          "s"
+        ],
+        "expected": {
+          "s": 0,
+          "x": null,
+          "y": null
+        },
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              "a",
+              "a",
+              0
+            ],
+            [
+              "a",
+              "b",
+              0
+            ],
+            [
+              "b",
+              "a",
+              1
+            ]
+          ],
+          "a"
+        ],
+        "expected": {
+          "a": 0,
+          "b": 0
+        },
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              "a",
+              "b",
+              7
+            ],
+            [
+              "a",
+              "b",
+              2
+            ]
+          ],
+          "a"
+        ],
+        "expected": {
+          "a": 0,
+          "b": 2
+        },
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              "a",
+              "b",
+              3
+            ],
+            [
+              "b",
+              "c",
+              4
+            ]
+          ],
+          "c"
+        ],
+        "expected": {
+          "a": null,
+          "b": null,
+          "c": 0
+        },
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              "a",
+              "b",
+              1
+            ],
+            [
+              "z",
+              "z",
+              -2
+            ]
+          ],
+          "a"
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ]
+  },
+  {
+    "task_id": "v3_10",
+    "name": "lru_trace",
+    "difficulty": "medium",
+    "domain": "data structures",
+    "rationale": "State transitions, update recency and zero-capacity behavior.",
+    "specification": "Implement lru_trace(capacity: int, operations: list[list]) -> dict. Operations are [\"put\",string_key,integer_value] or [\"get\",string_key]. Gets return value or None on miss; successful gets and puts make the key most recent, including updates. Evict least recent key on overflow. Return {\"gets\": all get outputs, \"keys\": final keys least-to-most recent}. Capacity 0 stores nothing; negative capacity raises ValueError. <=1000 operations.",
+    "development": [
+      {
+        "args": [
+          2,
+          [
+            [
+              "put",
+              "a",
+              1
+            ],
+            [
+              "put",
+              "b",
+              2
+            ],
+            [
+              "get",
+              "a"
+            ],
+            [
+              "put",
+              "c",
+              3
+            ],
+            [
+              "get",
+              "b"
+            ]
+          ]
+        ],
+        "expected": {
+          "gets": [
+            1,
+            null
+          ],
+          "keys": [
+            "a",
+            "c"
+          ]
+        },
+        "error": null
+      },
+      {
+        "args": [
+          0,
+          [
+            [
+              "put",
+              "a",
+              1
+            ],
+            [
+              "get",
+              "a"
+            ]
+          ]
+        ],
+        "expected": {
+          "gets": [
+            null
+          ],
+          "keys": []
+        },
+        "error": null
+      },
+      {
+        "args": [
+          -1,
+          []
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          2,
+          [
+            [
+              "put",
+              "a",
+              1
+            ],
+            [
+              "put",
+              "b",
+              2
+            ],
+            [
+              "put",
+              "a",
+              4
+            ]
+          ]
+        ],
+        "expected": {
+          "gets": [],
+          "keys": [
+            "b",
+            "a"
+          ]
+        },
+        "error": null
+      },
+      {
+        "args": [
+          1,
+          [
+            [
+              "get",
+              "z"
+            ],
+            [
+              "put",
+              "a",
+              0
+            ],
+            [
+              "put",
+              "b",
+              2
+            ],
+            [
+              "get",
+              "a"
+            ]
+          ]
+        ],
+        "expected": {
+          "gets": [
+            null,
+            null
+          ],
+          "keys": [
+            "b"
+          ]
+        },
+        "error": null
+      },
+      {
+        "args": [
+          3,
+          []
+        ],
+        "expected": {
+          "gets": [],
+          "keys": []
+        },
+        "error": null
+      },
+      {
+        "args": [
+          1,
+          [
+            [
+              "put",
+              "",
+              7
+            ],
+            [
+              "get",
+              ""
+            ]
+          ]
+        ],
+        "expected": {
+          "gets": [
+            7
+          ],
+          "keys": [
+            ""
+          ]
+        },
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_11",
+    "name": "subtract_intervals",
+    "difficulty": "medium",
+    "domain": "algorithms",
+    "rationale": "Interval-set algebra with union normalization and boundary semantics.",
+    "specification": "Implement subtract_intervals(base: list[list[int]], cuts: list[list[int]]) -> list[list[int]]. Each pair denotes half-open [start,end). Return union(base) minus union(cuts), as sorted maximal disjoint nonempty intervals, merging touching output intervals. Inputs may overlap and be unsorted; empty intervals ignored. Reversed interval raises ValueError even if irrelevant. <=100 intervals each.",
+    "development": [
+      {
+        "args": [
+          [
+            [
+              0,
+              10
+            ]
+          ],
+          [
+            [
+              3,
+              7
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            0,
+            3
+          ],
+          [
+            7,
+            10
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [],
+          []
+        ],
+        "expected": [],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              1,
+              3
+            ],
+            [
+              3,
+              5
+            ]
+          ],
+          []
+        ],
+        "expected": [
+          [
+            1,
+            5
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              2,
+              1
+            ]
+          ],
+          []
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          [
+            [
+              0,
+              4
+            ],
+            [
+              2,
+              8
+            ]
+          ],
+          [
+            [
+              1,
+              3
+            ],
+            [
+              5,
+              9
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            0,
+            1
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              1,
+              2
+            ]
+          ],
+          [
+            [
+              0,
+              3
+            ]
+          ]
+        ],
+        "expected": [],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              2,
+              2
+            ],
+            [
+              4,
+              6
+            ]
+          ],
+          [
+            [
+              0,
+              4
+            ],
+            [
+              6,
+              9
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            4,
+            6
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              -5,
+              0
+            ]
+          ],
+          [
+            [
+              -3,
+              -1
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            -5,
+            -3
+          ],
+          [
+            -1,
+            0
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [],
+          [
+            [
+              9,
+              2
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            [
+              4,
+              8
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          []
+        ],
+        "expected": [
+          [
+            0,
+            1
+          ],
+          [
+            4,
+            8
+          ]
+        ],
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_12",
+    "name": "aggregate_orders",
+    "difficulty": "medium",
+    "domain": "data processing",
+    "rationale": "Validated join, stable output and exact integer aggregation.",
+    "specification": "Implement aggregate_orders(customers: list[dict], orders: list[dict]) -> list[dict]. Customers have unique string id; orders have customer string and amount integer in cents. Sum amounts for each customer, output {\"id\": id, \"total\": cents} in customer order, including zero-order customers. Duplicate customer id, unknown order customer, or negative amount raises ValueError. <=1000 records each.",
+    "development": [
+      {
+        "args": [
+          [
+            {
+              "id": "b"
+            },
+            {
+              "id": "a"
+            }
+          ],
+          [
+            {
+              "customer": "a",
+              "amount": 3
+            }
+          ]
+        ],
+        "expected": [
+          {
+            "id": "b",
+            "total": 0
+          },
+          {
+            "id": "a",
+            "total": 3
+          }
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [],
+          []
+        ],
+        "expected": [],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            {
+              "id": "x"
+            },
+            {
+              "id": "x"
+            }
+          ],
+          []
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          [
+            {
+              "id": "a"
+            }
+          ],
+          [
+            {
+              "customer": "a",
+              "amount": 0
+            },
+            {
+              "customer": "a",
+              "amount": 7
+            },
+            {
+              "customer": "a",
+              "amount": 8
+            }
+          ]
+        ],
+        "expected": [
+          {
+            "id": "a",
+            "total": 15
+          }
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [],
+          [
+            {
+              "customer": "x",
+              "amount": 1
+            }
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            {
+              "id": "a"
+            }
+          ],
+          [
+            {
+              "customer": "a",
+              "amount": -1
+            }
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            {
+              "id": ""
+            }
+          ],
+          []
+        ],
+        "expected": [
+          {
+            "id": "",
+            "total": 0
+          }
+        ],
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_13",
+    "name": "evaluate_expression",
+    "difficulty": "hard",
+    "domain": "parsing",
+    "rationale": "Recursive precedence, unary operators, strict token consumption and errors.",
+    "specification": "Implement evaluate_expression(text: str) -> int. Grammar: expr=term ((+|-) term)*; term=atom (* atom)*; atom=ASCII nonnegative integer | (+|-) atom | ( expr ). Operators associate left, unary binds tighter than *. Ignore whitespace between tokens, not within a number. Leading zeroes allowed. Empty/invalid/trailing tokens or unbalanced parentheses raise ValueError. No eval/exec. Length <=300, nesting <=30.",
+    "development": [
+      {
+        "args": [
+          "2+3*4"
+        ],
+        "expected": 14,
+        "error": null
+      },
+      {
+        "args": [
+          "-(2+3)*4"
+        ],
+        "expected": -20,
+        "error": null
+      },
+      {
+        "args": [
+          "1--2"
+        ],
+        "expected": 3,
+        "error": null
+      },
+      {
+        "args": [
+          "2/1"
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          ""
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          "10-3-2"
+        ],
+        "expected": 5,
+        "error": null
+      },
+      {
+        "args": [
+          " --5 + +2 "
+        ],
+        "expected": 7,
+        "error": null
+      },
+      {
+        "args": [
+          "2*-3"
+        ],
+        "expected": -6,
+        "error": null
+      },
+      {
+        "args": [
+          "(1+(2*3))"
+        ],
+        "expected": 7,
+        "error": null
+      },
+      {
+        "args": [
+          "007"
+        ],
+        "expected": 7,
+        "error": null
+      },
+      {
+        "args": [
+          "1 2"
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          "()"
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          "(1+2"
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          "3+"
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          "2(3)"
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          "a"
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ]
+  },
+  {
+    "task_id": "v3_14",
+    "name": "strongly_connected",
+    "difficulty": "hard",
+    "domain": "graph algorithms",
+    "rationale": "Directed SCC partition with canonical ordering and implicit vertices.",
+    "specification": "Implement strongly_connected(graph: dict[str,list[str]]) -> list[list[str]]. Return strongly connected components of a directed graph. Include nodes appearing only as neighbors; allow loops/duplicate edges. Sort each component lexicographically and sort outer list lexicographically by component lists. <=100 nodes, 500 edges.",
+    "development": [
+      {
+        "args": [
+          {
+            "a": [
+              "b"
+            ],
+            "b": [
+              "a",
+              "c"
+            ]
+          }
+        ],
+        "expected": [
+          [
+            "a",
+            "b"
+          ],
+          [
+            "c"
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          {}
+        ],
+        "expected": [],
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "z": [
+              "z"
+            ]
+          }
+        ],
+        "expected": [
+          [
+            "z"
+          ]
+        ],
+        "error": null
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          {
+            "a": [
+              "b"
+            ],
+            "b": [
+              "c"
+            ],
+            "c": [
+              "a",
+              "d"
+            ],
+            "d": [
+              "e"
+            ],
+            "e": [
+              "d"
+            ]
+          }
+        ],
+        "expected": [
+          [
+            "a",
+            "b",
+            "c"
+          ],
+          [
+            "d",
+            "e"
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "b": [],
+            "a": []
+          }
+        ],
+        "expected": [
+          [
+            "a"
+          ],
+          [
+            "b"
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "a": [
+              "b",
+              "b"
+            ]
+          }
+        ],
+        "expected": [
+          [
+            "a"
+          ],
+          [
+            "b"
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "a": [
+              "c"
+            ],
+            "b": [
+              "c"
+            ],
+            "c": []
+          }
+        ],
+        "expected": [
+          [
+            "a"
+          ],
+          [
+            "b"
+          ],
+          [
+            "c"
+          ]
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "x": [
+              "y"
+            ],
+            "y": [
+              "z"
+            ],
+            "z": [
+              "y"
+            ]
+          }
+        ],
+        "expected": [
+          [
+            "x"
+          ],
+          [
+            "y",
+            "z"
+          ]
+        ],
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_15",
+    "name": "maximum_matching",
+    "difficulty": "hard",
+    "domain": "graph algorithms",
+    "rationale": "Augmenting paths and reassignment rather than greedy edge choice.",
+    "specification": "Implement maximum_matching(adjacency: dict[str,list[str]]) -> int. Keys are left vertices; values are adjacent right vertices. Left/right namespaces are distinct even for equal strings. Return maximum cardinality bipartite matching, not the matching itself. Duplicate edges count once. <=80 vertices per side, <=500 edges.",
+    "development": [
+      {
+        "args": [
+          {
+            "a": [
+              "x",
+              "y"
+            ],
+            "b": [
+              "x"
+            ]
+          }
+        ],
+        "expected": 2,
+        "error": null
+      },
+      {
+        "args": [
+          {}
+        ],
+        "expected": 0,
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "a": []
+          }
+        ],
+        "expected": 0,
+        "error": null
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          {
+            "a": [
+              "x"
+            ],
+            "b": [
+              "x"
+            ],
+            "c": [
+              "x"
+            ]
+          }
+        ],
+        "expected": 1,
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "a": [
+              "a"
+            ],
+            "b": [
+              "b"
+            ]
+          }
+        ],
+        "expected": 2,
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "a": [
+              "1",
+              "2"
+            ],
+            "b": [
+              "2",
+              "3"
+            ],
+            "c": [
+              "1"
+            ]
+          }
+        ],
+        "expected": 3,
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "u": [
+              "v",
+              "v"
+            ]
+          }
+        ],
+        "expected": 1,
+        "error": null
+      },
+      {
+        "args": [
+          {
+            "a": [],
+            "b": [
+              "r"
+            ],
+            "c": [
+              "s"
+            ]
+          }
+        ],
+        "expected": 2,
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_16",
+    "name": "weighted_schedule",
+    "difficulty": "hard",
+    "domain": "algorithms",
+    "rationale": "Dynamic programming with predecessor search, excluding greedy solutions.",
+    "specification": "Implement weighted_schedule(jobs: list[list[int]]) -> int. A job [start,end,value] occupies half-open [start,end). Choose compatible jobs maximizing sum of values; jobs touching endpoints are compatible. Require start < end and value >=0, otherwise ValueError. Empty set allowed. Jobs unordered, duplicates distinct but overlapping. <=1000 jobs.",
+    "development": [
+      {
+        "args": [
+          [
+            [
+              0,
+              3,
+              5
+            ],
+            [
+              1,
+              2,
+              4
+            ],
+            [
+              2,
+              4,
+              4
+            ]
+          ]
+        ],
+        "expected": 8,
+        "error": null
+      },
+      {
+        "args": [
+          []
+        ],
+        "expected": 0,
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              2,
+              2,
+              1
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          [
+            [
+              0,
+              10,
+              20
+            ],
+            [
+              0,
+              4,
+              9
+            ],
+            [
+              4,
+              10,
+              9
+            ]
+          ]
+        ],
+        "expected": 20,
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              2,
+              3,
+              5
+            ],
+            [
+              0,
+              2,
+              4
+            ]
+          ]
+        ],
+        "expected": 9,
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              1,
+              4,
+              0
+            ],
+            [
+              1,
+              4,
+              0
+            ]
+          ]
+        ],
+        "expected": 0,
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              -3,
+              -1,
+              2
+            ],
+            [
+              -1,
+              1,
+              3
+            ]
+          ]
+        ],
+        "expected": 5,
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              0,
+              1,
+              -1
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            [
+              3,
+              1,
+              1
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            [
+              0,
+              2,
+              5
+            ],
+            [
+              0,
+              2,
+              5
+            ]
+          ]
+        ],
+        "expected": 5,
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_17",
+    "name": "transaction_trace",
+    "difficulty": "hard",
+    "domain": "software engineering",
+    "rationale": "Nested transaction semantics, rollback isolation and persistent read history.",
+    "specification": "Implement transaction_trace(operations: list[list]) -> dict. Start empty key/value state. Commands: [\"set\",string_key,integer_value], [\"delete\",key] (missing is no-op), [\"get\",key] appends value or None to reads, [\"begin\"], [\"commit\"], [\"rollback\"]. Begin snapshots current state; commit removes innermost snapshot keeping changes; rollback restores innermost snapshot. Outer rollback also undoes inner committed changes. Reads are never rolled back. Commit/rollback without transaction, or open transactions at end, raises ValueError. Return {\"state\": final_dict, \"reads\": outputs}. <=500 operations.",
+    "development": [
+      {
+        "args": [
+          [
+            [
+              "set",
+              "x",
+              1
+            ],
+            [
+              "begin"
+            ],
+            [
+              "set",
+              "x",
+              2
+            ],
+            [
+              "get",
+              "x"
+            ],
+            [
+              "rollback"
+            ],
+            [
+              "get",
+              "x"
+            ]
+          ]
+        ],
+        "expected": {
+          "state": {
+            "x": 1
+          },
+          "reads": [
+            2,
+            1
+          ]
+        },
+        "error": null
+      },
+      {
+        "args": [
+          []
+        ],
+        "expected": {
+          "state": {},
+          "reads": []
+        },
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              "commit"
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          [
+            [
+              "begin"
+            ],
+            [
+              "set",
+              "x",
+              1
+            ],
+            [
+              "begin"
+            ],
+            [
+              "set",
+              "x",
+              2
+            ],
+            [
+              "commit"
+            ],
+            [
+              "rollback"
+            ],
+            [
+              "get",
+              "x"
+            ]
+          ]
+        ],
+        "expected": {
+          "state": {},
+          "reads": [
+            null
+          ]
+        },
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              "set",
+              "x",
+              0
+            ],
+            [
+              "begin"
+            ],
+            [
+              "delete",
+              "x"
+            ],
+            [
+              "get",
+              "x"
+            ],
+            [
+              "rollback"
+            ]
+          ]
+        ],
+        "expected": {
+          "state": {
+            "x": 0
+          },
+          "reads": [
+            null
+          ]
+        },
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              "delete",
+              "a"
+            ],
+            [
+              "get",
+              "a"
+            ]
+          ]
+        ],
+        "expected": {
+          "state": {},
+          "reads": [
+            null
+          ]
+        },
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              "begin"
+            ],
+            [
+              "set",
+              "x",
+              3
+            ],
+            [
+              "commit"
+            ]
+          ]
+        ],
+        "expected": {
+          "state": {
+            "x": 3
+          },
+          "reads": []
+        },
+        "error": null
+      },
+      {
+        "args": [
+          [
+            [
+              "begin"
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            [
+              "rollback"
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ]
+  },
+  {
+    "task_id": "v3_18",
+    "name": "apply_patch_lines",
+    "difficulty": "hard",
+    "domain": "software engineering",
+    "rationale": "Atomic patch validation using original coordinates and exact context.",
+    "specification": "Implement apply_patch_lines(lines: list[str], hunks: list[list]) -> list[str]. Hunk [start,old,new] replaces original lines[start:start+len(old)] with list new; old must match exactly. All coordinates refer to original input. Require 0<=start and start+len(old)<=len(lines); starts strictly increasing, consumed ranges nonoverlapping (next start >= previous start+len(old)). Empty old permits insertion including at EOF. Any violation raises ValueError. Empty hunks return equal copy. <=1000 lines/hunks.",
+    "development": [
+      {
+        "args": [
+          [
+            "a",
+            "b",
+            "c"
+          ],
+          [
+            [
+              1,
+              [
+                "b"
+              ],
+              [
+                "B",
+                "X"
+              ]
+            ]
+          ]
+        ],
+        "expected": [
+          "a",
+          "B",
+          "X",
+          "c"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [],
+          [
+            [
+              0,
+              [],
+              [
+                "x"
+              ]
+            ]
+          ]
+        ],
+        "expected": [
+          "x"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            "a"
+          ],
+          [
+            [
+              0,
+              [
+                "b"
+              ],
+              []
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          [
+            "a",
+            "b",
+            "c",
+            "d"
+          ],
+          [
+            [
+              0,
+              [
+                "a"
+              ],
+              []
+            ],
+            [
+              2,
+              [
+                "c"
+              ],
+              [
+                "C"
+              ]
+            ]
+          ]
+        ],
+        "expected": [
+          "b",
+          "C",
+          "d"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            "a"
+          ],
+          [
+            [
+              1,
+              [],
+              [
+                "z"
+              ]
+            ]
+          ]
+        ],
+        "expected": [
+          "a",
+          "z"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            "a",
+            "b"
+          ],
+          []
+        ],
+        "expected": [
+          "a",
+          "b"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          [
+            "a",
+            "b"
+          ],
+          [
+            [
+              0,
+              [
+                "a",
+                "b"
+              ],
+              []
+            ],
+            [
+              1,
+              [
+                "b"
+              ],
+              []
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            "a"
+          ],
+          [
+            [
+              0,
+              [],
+              [
+                "x"
+              ]
+            ],
+            [
+              0,
+              [],
+              [
+                "y"
+              ]
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            "a"
+          ],
+          [
+            [
+              2,
+              [],
+              []
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      },
+      {
+        "args": [
+          [
+            "a"
+          ],
+          [
+            [
+              -1,
+              [],
+              []
+            ]
+          ]
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ]
+  },
+  {
+    "task_id": "v3_19",
+    "name": "wildcard_matches",
+    "difficulty": "hard",
+    "domain": "parsing and algorithms",
+    "rationale": "Glob matching with empty matches, escapes and full-string semantics.",
+    "specification": "Implement wildcard_matches(pattern: str, words: list[str]) -> list[str]. Match entire Unicode strings case-sensitively. Unescaped ? matches one character, * matches zero or more characters. Backslash escapes the next character literally; trailing backslash raises ValueError. No special meaning for any other character, including brackets and /. Return matching words in input order with duplicates. Pattern length <=100, <=200 words, each length <=100.",
+    "development": [
+      {
+        "args": [
+          "a*?",
+          [
+            "a",
+            "ab",
+            "abc",
+            "ba"
+          ]
+        ],
+        "expected": [
+          "ab",
+          "abc"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "",
+          [
+            "",
+            "a"
+          ]
+        ],
+        "expected": [
+          ""
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "x\\",
+          []
+        ],
+        "expected": null,
+        "error": "ValueError"
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          "*",
+          [
+            "",
+            "x",
+            "x"
+          ]
+        ],
+        "expected": [
+          "",
+          "x",
+          "x"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "a\\*b",
+          [
+            "ab",
+            "a*b",
+            "axxb"
+          ]
+        ],
+        "expected": [
+          "a*b"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "a?c",
+          [
+            "ac",
+            "abc",
+            "a🙂c"
+          ]
+        ],
+        "expected": [
+          "abc",
+          "a🙂c"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "**a**",
+          [
+            "a",
+            "ba",
+            "ab",
+            ""
+          ]
+        ],
+        "expected": [
+          "a",
+          "ba",
+          "ab"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "[x]",
+          [
+            "x",
+            "[x]"
+          ]
+        ],
+        "expected": [
+          "[x]"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "\\?",
+          [
+            "?",
+            "a"
+          ]
+        ],
+        "expected": [
+          "?"
+        ],
+        "error": null
+      },
+      {
+        "args": [
+          "A",
+          [
+            "a",
+            "A"
+          ]
+        ],
+        "expected": [
+          "A"
+        ],
+        "error": null
+      }
+    ]
+  },
+  {
+    "task_id": "v3_20",
+    "name": "edit_distance",
+    "difficulty": "hard",
+    "domain": "algorithms",
+    "rationale": "Two-dimensional dynamic programming with restricted transposition recurrence.",
+    "specification": "Implement edit_distance(source: str, target: str) -> int, the optimal string alignment (restricted Damerau-Levenshtein) distance. Each insertion, deletion, substitution or adjacent transposition costs 1. Precisely: D[i,0]=i; D[0,j]=j; D[i,j]=min(D[i-1,j]+1,D[i,j-1]+1,D[i-1,j-1]+(s[i-1]!=t[j-1])); if i,j>=2 and s[i-1]==t[j-2] and s[i-2]==t[j-1], also consider D[i-2,j-2]+1. Return D[len(s),len(t)]. Unicode code points; length <=100 each.",
+    "development": [
+      {
+        "args": [
+          "ab",
+          "ba"
+        ],
+        "expected": 1,
+        "error": null
+      },
+      {
+        "args": [
+          "",
+          "cat"
+        ],
+        "expected": 3,
+        "error": null
+      },
+      {
+        "args": [
+          "same",
+          "same"
+        ],
+        "expected": 0,
+        "error": null
+      }
+    ],
+    "evaluation": [
+      {
+        "args": [
+          "kitten",
+          "sitting"
+        ],
+        "expected": 3,
+        "error": null
+      },
+      {
+        "args": [
+          "CA",
+          "ABC"
+        ],
+        "expected": 3,
+        "error": null
+      },
+      {
+        "args": [
+          "abc",
+          "acb"
+        ],
+        "expected": 1,
+        "error": null
+      },
+      {
+        "args": [
+          "abc",
+          ""
+        ],
+        "expected": 3,
+        "error": null
+      },
+      {
+        "args": [
+          "aab",
+          "aba"
+        ],
+        "expected": 1,
+        "error": null
+      },
+      {
+        "args": [
+          "🙂a",
+          "a🙂"
+        ],
+        "expected": 1,
+        "error": null
+      },
+      {
+        "args": [
+          "",
+          ""
+        ],
+        "expected": 0,
+        "error": null
+      },
+      {
+        "args": [
+          "abc",
+          "xyz"
+        ],
+        "expected": 3,
+        "error": null
+      }
+    ]
+  }
+]

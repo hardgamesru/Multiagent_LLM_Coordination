@@ -72,6 +72,86 @@ def f(): return 0
 '''
         self.assertNotEqual(self.run_case(code).status, "passed")
 
+    def test_candidate_cannot_inject_reply_after_a_call(self):
+        code = '''import os, threading, time
+def f(value):
+    if value == 1:
+        def inject():
+            time.sleep(0.1)
+            os.write(1, b'{"ok":true,"value":42,"updates":[]}\\n')
+        threading.Thread(target=inject, daemon=True).start()
+        return 1
+    return 0
+'''
+        tests = "import time\nassert f(1) == 1\ntime.sleep(0.4)\nassert f(2) == 42"
+        self.assertNotEqual(self.run_case(code, tests).status, "passed")
+
+    def test_candidate_subprocess_cannot_inherit_protocol_output(self):
+        code = '''def f():
+    import subprocess, sys
+    payload = 'import os; os.write(1, bytes.fromhex("7b226f6b223a747275652c2276616c7565223a34322c2275706461746573223a5b5d7d0a"))'
+    subprocess.run([sys.executable, "-c", payload], check=True)
+    return 0
+'''
+        self.assertIn(self.run_case(code).status, {"failed_tests", "sandbox_error"})
+
+    def test_malformed_candidate_reply_fails_closed(self):
+        code = '''import os
+os.write(1, b'not-json\\n')
+def f(): return 0
+'''
+        self.assertNotEqual(self.run_case(code).status, "passed")
+
+    def test_candidate_crash_during_call_fails_closed(self):
+        code = '''def f():
+    import os
+    os._exit(17)
+'''
+        self.assertNotEqual(self.run_case(code).status, "passed")
+
+    def test_candidate_cannot_reopen_supervisor_streams(self):
+        code = '''import os
+def f():
+    for descriptor in (0, 1, 2):
+        path = f"/proc/{os.getppid()}/fd/{descriptor}"
+        try:
+            fd = os.open(path, os.O_NONBLOCK | (os.O_RDONLY if descriptor == 0 else os.O_WRONLY))
+        except PermissionError:
+            continue
+        os.close(fd)
+        return 0
+    return 42
+'''
+        self.assertEqual(self.run_case(code).status, "passed")
+
+    def test_forked_descendant_cannot_send_on_inherited_ipc(self):
+        code = '''import os, sys
+def f():
+    channel = sys._getframe(1).f_locals["channel"]
+    pid = os.fork()
+    if not pid:
+        channel.sendall(b'{"ok":true,"value":42,"updates":[]}')
+        os._exit(0)
+    os.waitpid(pid, 0)
+    return 0
+'''
+        self.assertEqual(self.run_case(code).status, "failed_tests")
+
+    def test_malformed_ipc_result_is_fatal_even_if_tests_catch_exceptions(self):
+        code = '''import sys
+def f():
+    adapter = sys._getframe(1).f_globals
+    adapter["collect_updates"] = lambda references, reverse: [{"id": 42, "t": "list", "v": []}]
+    raise ValueError
+'''
+        tests = "try:\n    f()\nexcept BaseException:\n    pass"
+        self.assertEqual(self.run_case(code, tests).status, "failed_tests")
+
+    def test_candidate_exit_cannot_satisfy_exception_assertion(self):
+        code = "import os\ndef f(): os._exit(17)"
+        tests = "try:\n    f()\nexcept RuntimeError:\n    pass\nelse:\n    assert False"
+        self.assertEqual(self.run_case(code, tests).status, "failed_tests")
+
     def test_container_resource_limits(self):
         code = '''def f():
     from pathlib import Path
@@ -90,6 +170,35 @@ def f(): return 0
     def test_mutated_inputs_and_identity_are_preserved(self):
         code = "def f(x):\n    x.append(2)\n    return x"
         tests = "a = [1]\nb = f(a)\nassert a == [1, 2]\nassert b is a"
+        self.assertEqual(self.run_case(code, tests).status, "passed")
+
+    def test_aliases_mutation_on_exception_and_worker_state(self):
+        code = '''calls = 0
+def f(items, *, alias, fail=False):
+    global calls
+    calls += 1
+    assert items is alias["items"]
+    items.append(calls)
+    alias["count"] = calls
+    if fail:
+        raise ValueError("candidate text")
+    return (alias, items)
+'''
+        tests = '''items = []
+mapping = {"items": items}
+try:
+    f(items, alias=mapping, fail=True)
+except ValueError:
+    pass
+else:
+    assert False
+assert items == [1]
+assert mapping["count"] == 1
+result = f(items, alias=mapping)
+assert type(result) is tuple
+assert result[0] is mapping and result[1] is items
+assert items == [1, 2] and mapping["count"] == 2
+'''
         self.assertEqual(self.run_case(code, tests).status, "passed")
 
     def test_candidate_cannot_patch_evaluator_builtins(self):

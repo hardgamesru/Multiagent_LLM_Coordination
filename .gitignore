@@ -1,0 +1,21 @@
+# Private configuration and raw provider state
+.env
+.env.*
+!.env.example
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.zip
+*.7z
+__pycache__/
+*.py[cod]
+.venv/
+.idea/
+.pytest_cache/
+.ruff_cache/
+research_archive/
+research_v3/
+local_runs/
+*.log
+*.tmp

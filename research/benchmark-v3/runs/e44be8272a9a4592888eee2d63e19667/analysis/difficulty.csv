@@ -1,0 +1,19 @@
+model,architecture,difficulty,evaluations,passed,success_rate,input_usage_tokens,cached_input_tokens,output_tokens,provider_total_tokens,combined_tokens_including_cache,llm_calls,elapsed_seconds,mean_seconds,mean_api_seconds,tokens_per_pass,failures
+GigaChat-2,single_agent,easy,4,2,0.5,914,0,443,1357,1357,4,10.098700000000001,2.5246750000000002,0.8874073750002935,678.5,{'failed_tests': 2}
+GigaChat-2,single_agent,medium,8,2,0.25,2089,0,2073,4162,4162,8,26.9786,3.372325,1.8505043750001278,2081.0,{'failed_tests': 6}
+GigaChat-2,single_agent,hard,8,1,0.125,2224,0,1547,3771,3771,8,24.9837,3.1229625,1.4782067250000637,3771.0,{'failed_tests': 7}
+GigaChat-2,feedback_graph,easy,4,1,0.25,7823,455,1893,9716,10171,24,38.1181,9.529525,4.102458749998277,10171.0,{'failed_tests': 3}
+GigaChat-2,feedback_graph,medium,8,2,0.25,18107,3977,7075,25182,29159,49,107.86880000000001,13.483600000000001,7.0192571125000995,14579.5,"{'failed_tests': 5, 'candidate_timeout': 1}"
+GigaChat-2,feedback_graph,hard,8,1,0.125,20742,2735,7192,27934,30669,51,109.5628,13.69535,7.228961025000672,30669.0,{'failed_tests': 7}
+GigaChat-2,parallel_consensus,easy,4,1,0.25,7136,1204,2265,9401,10605,24,53.7006,13.42515,5.849470950000978,10605.0,{'failed_tests': 3}
+GigaChat-2,parallel_consensus,medium,8,1,0.125,14676,3740,7958,22634,26374,48,143.5454,17.943175,11.478887149999537,26374.0,"{'failed_tests': 6, 'invalid_code': 1}"
+GigaChat-2,parallel_consensus,hard,8,1,0.125,15663,4285,8265,23928,28213,48,109.7539,13.7192375,7.296517825000137,28213.0,{'failed_tests': 7}
+GigaChat-3-Ultra,single_agent,easy,4,4,1.0,886,0,372,1258,1258,4,8.9754,2.24385,0.8686862000004112,314.5,{}
+GigaChat-3-Ultra,single_agent,medium,8,8,1.0,2033,0,1495,3528,3528,8,21.5689,2.6961125,1.4002135624998573,441.0,{}
+GigaChat-3-Ultra,single_agent,hard,8,6,0.75,2168,0,1956,4124,4124,8,25.4815,3.1851875,1.7925647750000735,687.3333333333334,{'failed_tests': 2}
+GigaChat-3-Ultra,feedback_graph,easy,4,4,1.0,4782,0,1158,5940,5940,16,24.6647,6.166175,3.3725405249992946,1485.0,{}
+GigaChat-3-Ultra,feedback_graph,medium,8,6,0.75,13650,512,4729,18379,18891,35,70.2175,8.7771875,5.433618112499744,3148.5,{'failed_tests': 2}
+GigaChat-3-Ultra,feedback_graph,hard,8,7,0.875,15016,256,5766,20782,21038,34,69.976,8.747,5.612720749999426,3005.4285714285716,{'failed_tests': 1}
+GigaChat-3-Ultra,parallel_consensus,easy,4,4,1.0,7013,576,1996,9009,9585,24,43.1364,10.7841,5.465230624999094,2396.25,{}
+GigaChat-3-Ultra,parallel_consensus,medium,8,8,1.0,17607,1408,7638,25245,26653,48,106.2937,13.2867125,7.661934587499218,3331.625,{}
+GigaChat-3-Ultra,parallel_consensus,hard,8,6,0.75,19573,1280,10552,30125,31405,48,124.929,15.616125,9.681100324999989,5234.166666666667,{'failed_tests': 2}

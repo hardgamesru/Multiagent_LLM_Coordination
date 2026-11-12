@@ -1,0 +1,50 @@
+{
+  "protocol_version": "v3-preparation-1",
+  "status": "validated; no paid experiments",
+  "suite_size": 20,
+  "difficulty_counts": {
+    "easy": 4,
+    "medium": 8,
+    "hard": 8
+  },
+  "development_cases": 70,
+  "evaluation_cases": 121,
+  "pilot_task_ids": [
+    "v3_03",
+    "v3_10",
+    "v3_17"
+  ],
+  "models": [
+    "GigaChat-2",
+    "GigaChat-3-Ultra"
+  ],
+  "architectures": [
+    "single_agent",
+    "feedback_graph",
+    "parallel_consensus"
+  ],
+  "planned_repeats": 3,
+  "planned_evaluations": 360,
+  "pilot_evaluations": 18,
+  "total_new_experiment_token_ceiling": 1000000,
+  "target_tokens": 850000,
+  "api_calls_preparation": 0,
+  "v2_base_commit": "5e469e9cfcb185ae9650136dc5c539a9dad50256",
+  "v2_source_snapshot": "../lite-benchmark-work",
+  "known_limitation": "Adversarial candidate RPC integrity not guaranteed.",
+  "sha256": {
+    "__init__.py": "b845ff053b22750318c92cc49daa09b72b27de0f831f3f766e21e62da82e9c84",
+    "archive_v2.py": "8ae8a5c61bd9ff1d11912d0510503602e01e7e5f50525f8e5ade2f270ec41c86",
+    "catalog.py": "29e1197b83ede1a9707892bb560ca4185af320e118cff76e8841bfd076fa6001",
+    "experimental-design.md": "6f67b98f56cf21e34997dd54e5d62225911334d8b3fa026e672ffd6db9edaec3",
+    "freeze.py": "681f3f4c9064dd2e656b8f01a3c9f9cc35c0a179fb5e910955bbce928cab1be9",
+    "README.md": "08a34a20ec0662221c81f4c89f7fc92ac7d34893917c02b6163b18091708d7d7",
+    "references.py": "1f4e2b48a8ca4e3f7f0fbb3d5e305571a4b79245c8a69ce5edede3d5b76bfc3d",
+    "task-inventory.json": "d91b9f1d5e97fc4a4ec3bb9c861d959e486c3cfc2566b79582cc922a5be18097",
+    "task-specifications.md": "71e0d150e35c00623d9f872e7accd24796ef48f52c0e14d484beeaf8fec9fe59",
+    "test_validation.py": "6da47d9145aefde75a2f924aab67ea438980c77744e78b393f38526be7e70a73",
+    "validate.py": "4c7705c67c7e5d08f7148afb883507a62981cec72da2fc06c235a6eb40c9e230",
+    "validation-docker-results.json": "d99ef708bb5bdd25f37a8fdf64cbcd70d3a12872472291ca0c27cd21a7e9dc5f",
+    "validation-results.json": "9592208c126aa434f7a164505d3cc53f3d0b41c98656355195568106f97effb4"
+  }
+}

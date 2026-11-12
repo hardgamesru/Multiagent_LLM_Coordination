@@ -1,0 +1,24 @@
+{
+  "settings": {
+    "id": 1,
+    "ceiling": 1000000,
+    "target": 853000
+  },
+  "authorized_holds": [
+    {
+      "request_key": "d682d606a0ee4fc69d0e6b3cee054efb:GigaChat-2:single_agent:v3_08:1:1",
+      "authorization": "User requested a fresh complete main run on 2026-11-12; preserve abandoned attempt and its full unknown-request reserve.",
+      "created": 1794416616.2304814
+    }
+  ],
+  "budget_approvals": [
+    {
+      "id": 1,
+      "old_target": 850000,
+      "new_target": 853000,
+      "authorization": "User explicitly approved target 853000 and second 120-evaluation main repetition on 2026-11-12; hard ceiling remains 1000000.",
+      "created": 1794419142.1290948
+    }
+  ],
+  "privacy": "No response text, headers, credentials or personal filesystem paths are exported. Empty usage for unknown requests remains unknown."
+}

@@ -1,0 +1,19 @@
+{
+  "status": "incomplete",
+  "planned_evaluations": 120,
+  "completed_evaluations": 7,
+  "unresolved_evaluations": 1,
+  "not_attempted_evaluations": 112,
+  "known_main_input_tokens": 1613,
+  "known_main_output_tokens": 885,
+  "known_main_total_tokens": 2498,
+  "main_actual_total_tokens": null,
+  "unknown_billing_requests": 1,
+  "reserved_unknown_tokens": 69632,
+  "all_v3_known_provider_total": 43066,
+  "all_v3_known_including_cache": 46249,
+  "all_v3_known_plus_reserved_exposure": 115881,
+  "remaining_hard_budget_after_reservations": 884119,
+  "remaining_target_after_reservations": 734119,
+  "automatic_retries": 0
+}

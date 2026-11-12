@@ -1,0 +1,58 @@
+{
+  "run1": "e44be8272a9a4592888eee2d63e19667",
+  "run2": "adbb87a0aa394be6a8319624686f12fd",
+  "main_combined": {
+    "evaluations": 240,
+    "passed": 141,
+    "success_rate": 0.5875,
+    "input_usage_tokens": 343078,
+    "cached_input_tokens": 50562,
+    "output_tokens": 154501,
+    "provider_total_tokens": 497579,
+    "combined_tokens_including_cache": 548141,
+    "llm_calls": 965,
+    "elapsed_seconds": 2200.1838,
+    "mean_seconds": 9.1674325,
+    "mean_api_seconds": 5.132608985416527,
+    "tokens_per_pass": 3887.5248226950353,
+    "failures": {
+      "failed_tests": 96,
+      "candidate_timeout": 2,
+      "invalid_code": 1
+    }
+  },
+  "known_all_v3_including_cache": 594390,
+  "unknown_request_count": 1,
+  "retained_unknown_reservation": 69632,
+  "known_plus_reserved": 664022,
+  "approved_target": 853000,
+  "hard_ceiling": 1000000,
+  "remaining_target_after_reservations": 188978,
+  "remaining_hard_after_reservations": 335978,
+  "returned_model_versions": {
+    "1": [
+      [
+        "GigaChat-2",
+        "GigaChat-2:2.0.30.01"
+      ],
+      [
+        "GigaChat-3-Ultra",
+        "GigaChat-3-Ultra:32.9.16.9"
+      ]
+    ],
+    "2": [
+      [
+        "GigaChat-2",
+        "GigaChat-2:2.0.30.01"
+      ],
+      [
+        "GigaChat-3-Ultra",
+        "GigaChat-3-Ultra:32.9.16.9"
+      ]
+    ]
+  },
+  "request_finish_reasons": {
+    "stop": 964,
+    "length": 1
+  }
+}

@@ -50,22 +50,28 @@ def _drain(stream, limit: int, chunks: list[bytes], keep_tail: bool = False,
             remaining -= min(remaining, len(block))
 
 
-def _command(name: str, script: str) -> list[str]:
+def _command(name: str, script: str, *script_args: str) -> list[str]:
     return ["docker", "run", "--rm", "-i", "--name", name, "--pull=never",
             "--network=none", "--read-only", "--user=65534:65534", "--cap-drop=ALL",
             "--security-opt=no-new-privileges", "--pids-limit=64", "--memory=256m",
             "--cpus=1", "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m",
-            IMAGE, "python", "-I", "-c", script]
+            IMAGE, "python", "-I", "-c", script, *script_args]
+
+
+def _read_frame(stream):
+    line = stream.readline(MAX_RPC + 1)
+    if not line or len(line) > MAX_RPC or not line.endswith(b"\n"):
+        raise ValueError("invalid protocol frame")
+    return line
 
 
 def run_code_in_sandbox(code: str, tests: str, timeout: int = 5,
                         *, diagnostics: bool = False, startup_timeout: int = 20) -> SandboxResult:
     """Run candidate and trusted assertions in separate, unconnected containers.
 
-    The host relays bounded JSON calls and never executes either source string.
-    WARNING: candidate-controlled stdout can forge a function response. The
-    separate evaluator does not provide response integrity; do not use this
-    backend to assess adversarial candidates until the boundary is redesigned.
+    The host talks only to the evaluator and the candidate container's
+    supervisor. The supervisor accepts result data over private IPC; the
+    adapter inside the candidate interpreter is outside the trust boundary.
     """
     start = time.monotonic()
 
@@ -83,30 +89,30 @@ def run_code_in_sandbox(code: str, tests: str, timeout: int = 5,
     processes = []
     names = []
     threads = []
-    worker_lines = queue.Queue(maxsize=4)
     outcome = queue.Queue(maxsize=1)
     ready_events = []
     worker_initialized = threading.Event()
 
-    def spawn(role: str, script_name: str, payload: dict):
+    def spawn(script_name: str, payload: dict, *, candidate: bool = False):
         name = "llm-benchmark-" + secrets.token_hex(12)
         marker = "ready-" + secrets.token_hex(24)
         initialized_marker = "initialized-" + secrets.token_hex(24)
         script = (_DIR / script_name).read_text(encoding="utf-8")
-        proc = subprocess.Popen(_command(name, script), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+        script_args = ((_DIR / "sandbox_worker.py").read_text(encoding="utf-8"),) if candidate else ()
+        proc = subprocess.Popen(_command(name, script, *script_args), stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         names.append(name)
         processes.append(proc)
         event = threading.Event()
         ready_events.append(event)
         thread = threading.Thread(target=_drain, args=(proc.stderr, MAX_OUTPUT, [], True,
                                                        event, (marker + "\n").encode(),
-                                                       worker_initialized if role == "worker" else None,
+                                                       worker_initialized if candidate else None,
                                                        (initialized_marker + "\n").encode()), daemon=True)
         thread.start()
         threads.append(thread)
         payload["ready"] = marker
-        if role == "worker":
+        if candidate:
             payload["initialized"] = initialized_marker
         data = (json.dumps(payload, ensure_ascii=True) + "\n").encode()
 
@@ -121,24 +127,18 @@ def run_code_in_sandbox(code: str, tests: str, timeout: int = 5,
         threads.append(thread)
         return proc
 
-    def read_worker(proc):
+    def exchange(supervisor, request):
         try:
-            while True:
-                line = proc.stdout.readline(MAX_RPC + 1)
-                if not line or len(line) > MAX_RPC or not line.endswith(b"\n"):
-                    worker_lines.put(None)
-                    return
-                worker_lines.put(line)
+            supervisor.stdin.write(request)
+            supervisor.stdin.flush()
+            return _read_frame(supervisor.stdout)
         except (OSError, ValueError):
-            worker_lines.put(None)
+            return None
 
-    def relay(evaluator, worker):
+    def relay(evaluator, supervisor):
         try:
             while True:
-                line = evaluator.stdout.readline(MAX_RPC + 1)
-                if not line or len(line) > MAX_RPC or not line.endswith(b"\n"):
-                    outcome.put(("sandbox_error", "Evaluator protocol failed"))
-                    return
+                line = _read_frame(evaluator.stdout)
                 message = json.loads(line)
                 if not isinstance(message, dict):
                     raise ValueError("invalid message")
@@ -147,8 +147,7 @@ def run_code_in_sandbox(code: str, tests: str, timeout: int = 5,
                     detail = message.get("diagnostic")
                     if status not in {"passed", "failed_tests"} or not isinstance(detail, str):
                         raise ValueError("invalid verdict")
-                    # A candidate that died before returning a response cannot pass.
-                    if status == "passed" and worker.poll() is not None:
+                    if status == "passed" and exchange(supervisor, b'{"type":"finish"}\n') != b'{"type":"finished"}\n':
                         status, detail = "failed_tests", ""
                     text = "" if status == "passed" else status
                     if diagnostics and status == "failed_tests" and detail:
@@ -157,25 +156,18 @@ def run_code_in_sandbox(code: str, tests: str, timeout: int = 5,
                     return
                 if message.get("type") != "call":
                     raise ValueError("invalid request")
-                try:
-                    worker.stdin.write(line)
-                    worker.stdin.flush()
-                    response = worker_lines.get(timeout=timeout + 1)
-                except (BrokenPipeError, OSError, ValueError, queue.Empty):
-                    response = None
+                response = exchange(supervisor, line)
                 if response is None:
-                    response = b'{"ok":false,"exception":"RuntimeError"}\n'
+                    outcome.put(("failed_tests", "failed_tests"))
+                    return
                 evaluator.stdin.write(response)
                 evaluator.stdin.flush()
-        except (ValueError, TypeError, json.JSONDecodeError, BrokenPipeError, OSError):
+        except (ValueError, TypeError, RecursionError, OSError):
             outcome.put(("sandbox_error", "Evaluator protocol failed"))
 
     try:
-        worker = spawn("worker", "sandbox_worker.py", {"code": code})
-        thread = threading.Thread(target=read_worker, args=(worker,), daemon=True)
-        thread.start()
-        threads.append(thread)
-        evaluator = spawn("evaluator", "sandbox_evaluator.py",
+        supervisor = spawn("sandbox_supervisor.py", {"code": code}, candidate=True)
+        evaluator = spawn("sandbox_evaluator.py",
                           {"tests": tests, "functions": functions, "diagnostics": diagnostics})
         deadline = time.monotonic() + startup_timeout
         for proc, event in zip(processes, ready_events):
@@ -186,11 +178,11 @@ def run_code_in_sandbox(code: str, tests: str, timeout: int = 5,
                     return result("sandbox_error", "Container startup timed out")
         execution_deadline = time.monotonic() + timeout
         while not worker_initialized.wait(0.05):
-            if worker.poll() is not None:
+            if supervisor.poll() is not None:
                 return result("failed_tests", "Candidate exited during initialization")
             if time.monotonic() >= execution_deadline:
                 return result("candidate_timeout", "Candidate exceeded the execution time limit")
-        thread = threading.Thread(target=relay, args=(evaluator, worker), daemon=True)
+        thread = threading.Thread(target=relay, args=(evaluator, supervisor), daemon=True)
         thread.start()
         threads.append(thread)
         try:

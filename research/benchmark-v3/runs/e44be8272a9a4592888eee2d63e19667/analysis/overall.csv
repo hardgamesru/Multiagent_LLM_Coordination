@@ -1,0 +1,3 @@
+model,evaluations,passed,success_rate,input_usage_tokens,cached_input_tokens,output_tokens,provider_total_tokens,combined_tokens_including_cache,llm_calls,elapsed_seconds,mean_seconds,mean_api_seconds,tokens_per_pass,failures
+GigaChat-2,60,12,0.2,89374,16396,38711,128085,144481,264,624.6106,10.410176666666667,5.569600366666721,12040.083333333334,"{'failed_tests': 46, 'candidate_timeout': 1, 'invalid_code': 1}"
+GigaChat-3-Ultra,60,53,0.8833333333333333,82728,4032,35662,118390,122422,225,495.2431,8.254051666666667,4.858050771666361,2309.8490566037735,{'failed_tests': 7}

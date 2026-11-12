@@ -1,0 +1,19 @@
+{
+  "files_sha256": {
+    "analysis-source.py": "b507567d6e30ff80c626d7c32aabe65d16e96412023bf8159041bea25d944950",
+    "analysis-validation.log": "477b871480e8ececab8cc8c1495c80175f6949d4de4182fd87b70374c0714455",
+    "audit.json": "477b871480e8ececab8cc8c1495c80175f6949d4de4182fd87b70374c0714455",
+    "difficulty.csv": "2038647029a964d3588ab459af1084ad274df2bf2290de0324a6936ca495ad4d",
+    "evaluations.csv": "67ddaf0d4f006f5759419a5a756b2c56d8d9936eb51e2b07e64ebeea33bfd79b",
+    "model_architecture.csv": "87c2a823e94507c5688c661675783930d9ef9cc320608613dcefbd5afe3121fa",
+    "overall.csv": "bb08f24d6f9156df2e2daee71a60a32813881825c1861c6746b159cb370a6bd3",
+    "paired_task_results.csv": "3b253226fffe236e48ffba69f9345a7f34fad25903251e43d18bf9b42fa63b28",
+    "success_by_difficulty.png": "8cb9d082ed989265d0f472dced0d1c975c71d281efe4978362da8a0f91a927a1",
+    "success_by_difficulty.svg": "670aef5dc1c4f0e32379c1797eccc6e9f10b8310e04bab48a616c26b64540630",
+    "tokens_by_architecture.png": "1af227b0b588ac3b6668b9dab4508993a0144cb8412fa275563a050151038fd3",
+    "tokens_by_architecture.svg": "ccbd8d3c9d62cb97b8683240f1eefa8c54b6d0c3a81b3142fe4d6da7f338cfe4"
+  },
+  "report_sha256": "f27b5aed17ba230227771defd8dae04a1e101e84ff9dc7c40cc5da8b1b92864f",
+  "figure_format": "SVG",
+  "analysis_api_calls": 0
+}

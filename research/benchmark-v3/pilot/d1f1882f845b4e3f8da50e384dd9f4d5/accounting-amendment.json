@@ -1,0 +1,11 @@
+{
+  "reason": "Post-pilot audit: count cached input conservatively in shared budget in addition to provider total.",
+  "api_calls_after_amendment": 0,
+  "original_provider_total": 40568,
+  "cached_input": 3183,
+  "combined_budget_tokens": 43751,
+  "original_source_snapshot": "runner-source-snapshot",
+  "original_raw_csv_unchanged": true,
+  "original_manifest_unchanged": true,
+  "current_ledger_source_sha256": "60ed046e284185568bbfbdde4e8d05a3a8f12ad2edba1ccba17e06a43bef1706"
+}

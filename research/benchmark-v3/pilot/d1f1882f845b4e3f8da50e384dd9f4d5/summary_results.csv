@@ -1,0 +1,7 @@
+architecture,model,runs,eligible,passed,success_rate,repeat_success_rate_stddev,infrastructure_failures,infrastructure_failure_rate,generation_or_provider_failures,avg_llm_calls
+feedback_graph,GigaChat-2,3,3,1,0.3333333333333333,,0,0.0,0,6.666666666666667
+feedback_graph,GigaChat-3-Ultra,3,3,3,1.0,,0,0.0,0,4.0
+parallel_consensus,GigaChat-2,3,3,0,0.0,,0,0.0,0,6.0
+parallel_consensus,GigaChat-3-Ultra,3,3,2,0.6666666666666666,,0,0.0,0,6.0
+single_agent,GigaChat-2,3,3,1,0.3333333333333333,,0,0.0,0,1.0
+single_agent,GigaChat-3-Ultra,3,3,3,1.0,,0,0.0,0,1.0

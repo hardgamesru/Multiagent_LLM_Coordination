@@ -1,7 +1,11 @@
-"""Untrusted-side worker. Runs only inside its own isolated container."""
-import contextlib
+"""Candidate-side adapter. Its private IPC replies are untrusted data."""
 import json
+import socket
 import sys
+
+
+MAX_INPUT = 128 * 1024
+MAX_RPC = 64 * 1024
 
 
 def decode(value, references):
@@ -54,37 +58,39 @@ def collect_updates(references, reverse):
     return updates
 
 
-payload = json.loads(sys.stdin.readline())
-sys.stderr.write(payload["ready"] + "\n")
-sys.stderr.flush()
-namespace = {"__name__": "__candidate__"}
-try:
-    with contextlib.redirect_stdout(sys.stderr):
-        exec(compile(payload["code"], "<candidate>", "exec"), namespace)
-except BaseException:
-    sys.exit(1)
+def main(channel):
+    # Exec'd descendants inherit only the ordinary, discarded standard streams.
+    channel.set_inheritable(False)
+    source = channel.recv(MAX_INPUT + 2)
+    if not source.startswith(b"\x00") or len(source) > MAX_INPUT + 1:
+        raise ValueError("invalid candidate source frame")
+    namespace = {"__name__": "__candidate__"}
+    exec(compile(source[1:].decode("utf-8"), "<candidate>", "exec"), namespace)
+    channel.sendall(b"initialized")
 
-sys.stderr.write(payload["initialized"] + "\n")
-sys.stderr.flush()
-
-for line in sys.stdin:
-    references = {}
-    reverse = {}
-    try:
-        request = json.loads(line)
+    while packet := channel.recv(MAX_RPC + 1):
+        if len(packet) > MAX_RPC:
+            raise ValueError("oversized call")
+        request = json.loads(packet)
+        references = {}
         args = decode(request["args"], references)
         kwargs = decode(request["kwargs"], references)
         reverse = {id(value): key for key, value in references.items()}
-        with contextlib.redirect_stdout(sys.stderr):
-            result = namespace[request["name"]](*args, **kwargs)
-        reply = {"ok": True, "value": encode(result, reverse), "updates": collect_updates(references, reverse)}
-    except BaseException as exc:
-        # Exception text is untrusted and is never forwarded to the evaluator.
-        exception = type(exc).__name__ if type(exc) in (ValueError, TypeError, KeyError, IndexError) else "RuntimeError"
-        reply = {"ok": False, "exception": exception}
         try:
-            reply["updates"] = collect_updates(references, reverse)
-        except BaseException:
-            reply = {"ok": False, "exception": "RuntimeError"}
-    sys.stdout.write(json.dumps(reply, allow_nan=False, separators=(",", ":")) + "\n")
-    sys.stdout.flush()
+            result = namespace[request["name"]](*args, **kwargs)
+        except BaseException as exc:
+            exc_type = type(exc)
+            exception = exc_type.__name__ if exc_type in (ValueError, TypeError, KeyError, IndexError) else "RuntimeError"
+            reply = {"ok": False, "exception": exception}
+        else:
+            reply = {"ok": True, "value": encode(result, reverse)}
+        reply["updates"] = collect_updates(references, reverse)
+        data = json.dumps(reply, allow_nan=False, separators=(",", ":")).encode("ascii")
+        if len(data) > MAX_RPC:
+            raise ValueError("oversized candidate result")
+        channel.sendall(data)
+
+
+if __name__ == "__main__":
+    with socket.socket(fileno=int(sys.argv[1])) as endpoint:
+        main(endpoint)

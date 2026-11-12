@@ -1,0 +1,28 @@
+{
+  "experiment_id": "d1f1882f845b4e3f8da50e384dd9f4d5",
+  "provider_total_tokens": 40568,
+  "combined_including_cache": 43751,
+  "remaining_hard_budget": 956249,
+  "remaining_target_budget": 806249,
+  "forecasts": [
+    {
+      "repeats": 1,
+      "main_tokens": 309552,
+      "main_provider_total": 284960,
+      "pilot_plus_50pct_margin_plus_reservation": 577711
+    },
+    {
+      "repeats": 2,
+      "main_tokens": 619104,
+      "main_provider_total": 569920,
+      "pilot_plus_50pct_margin_plus_reservation": 1042039
+    },
+    {
+      "repeats": 3,
+      "main_tokens": 928656,
+      "main_provider_total": 854880,
+      "pilot_plus_50pct_margin_plus_reservation": 1506367
+    }
+  ],
+  "recommended_repeats": 1
+}

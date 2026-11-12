@@ -1,0 +1,329 @@
+{
+  "status": "passed",
+  "api_calls": 0,
+  "oracle_checks": 1285,
+  "docker_checked": false,
+  "tasks": [
+    {
+      "task_id": "v3_01",
+      "difficulty": "easy",
+      "development_cases": 4,
+      "evaluation_cases": 6,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_02",
+      "difficulty": "easy",
+      "development_cases": 4,
+      "evaluation_cases": 6,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_03",
+      "difficulty": "easy",
+      "development_cases": 4,
+      "evaluation_cases": 6,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_04",
+      "difficulty": "easy",
+      "development_cases": 3,
+      "evaluation_cases": 4,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_05",
+      "difficulty": "medium",
+      "development_cases": 4,
+      "evaluation_cases": 6,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_06",
+      "difficulty": "medium",
+      "development_cases": 4,
+      "evaluation_cases": 7,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_07",
+      "difficulty": "medium",
+      "development_cases": 4,
+      "evaluation_cases": 6,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_08",
+      "difficulty": "medium",
+      "development_cases": 4,
+      "evaluation_cases": 5,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_09",
+      "difficulty": "medium",
+      "development_cases": 3,
+      "evaluation_cases": 5,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_10",
+      "difficulty": "medium",
+      "development_cases": 3,
+      "evaluation_cases": 4,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_11",
+      "difficulty": "medium",
+      "development_cases": 4,
+      "evaluation_cases": 6,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_12",
+      "difficulty": "medium",
+      "development_cases": 3,
+      "evaluation_cases": 4,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_13",
+      "difficulty": "hard",
+      "development_cases": 5,
+      "evaluation_cases": 11,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_14",
+      "difficulty": "hard",
+      "development_cases": 3,
+      "evaluation_cases": 5,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_15",
+      "difficulty": "hard",
+      "development_cases": 3,
+      "evaluation_cases": 5,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_16",
+      "difficulty": "hard",
+      "development_cases": 3,
+      "evaluation_cases": 7,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_17",
+      "difficulty": "hard",
+      "development_cases": 3,
+      "evaluation_cases": 6,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_18",
+      "difficulty": "hard",
+      "development_cases": 3,
+      "evaluation_cases": 7,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_19",
+      "difficulty": "hard",
+      "development_cases": 3,
+      "evaluation_cases": 7,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    },
+    {
+      "task_id": "v3_20",
+      "difficulty": "hard",
+      "development_cases": 3,
+      "evaluation_cases": 8,
+      "splits": {
+        "development": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        },
+        "evaluation": {
+          "reference": "passed",
+          "mutants_rejected": 2
+        }
+      }
+    }
+  ],
+  "elapsed_seconds": 0.151
+}

@@ -1,0 +1,52 @@
+{
+  "experiment_id": "1a63bfbd0c8b4b4dabe26bfd6bc12eeb",
+  "protocol_version": "v2",
+  "model": "GigaChat-2",
+  "mock": false,
+  "started_utc": "2026-11-11T15:29:01.276764+00:00",
+  "architectures": [
+    "single_agent",
+    "chain",
+    "centralized",
+    "feedback_graph",
+    "fully_connected",
+    "parallel_consensus"
+  ],
+  "tasks": [
+    "t01",
+    "t02",
+    "t03",
+    "t04",
+    "t05",
+    "t06",
+    "t07",
+    "t08",
+    "t09"
+  ],
+  "repeats": 1,
+  "max_iterations": 3,
+  "python": "3.14.4",
+  "platform": "Windows",
+  "gigachat_version": "0.2.1",
+  "git_commit": "5e469e9cfcb185ae9650136dc5c539a9dad50256",
+  "git_tracked_files_dirty": true,
+  "model_parameters": "provider defaults; not exposed",
+  "revisions_sha256": {
+    "tasks.py": "3640cdf2a2e6e8bab6b9e3a0b25cc0f430f34513d75f9511ebf07632f8c8878f",
+    "prompts.py": "efc1502349e234cc9fa1c8403b8a7fd430fdcb3513320deeee076750f369cab1",
+    "sandbox_runner.py": "d927434cc3689ad52048cff154a298459bb4243bc5c446e0c60a75ca4d151954",
+    "sandbox_worker.py": "a3d66560f0f8a366f5fa9476d08bba15a4e6057f8ac31902879ed02c53f43c8d",
+    "sandbox_supervisor.py": "c0a21a6241cd26d5056e2bb430285a616c56ac2cc979ca1906202f563e04bdda",
+    "sandbox_evaluator.py": "86263d6dfaf1ffe4a0cda6c8ea44dee7e140031f14e131b42f32f5636d0f61c9"
+  },
+  "seed_control": "not supported by this client",
+  "sandbox_image": "python:3.12.8-alpine3.20@sha256:3b1df87fc50e7d47762aeb48673736079aa22e7c98c8851f5453dd49fc03ad1b",
+  "sandbox_executor": "two-container-supervised-rpc-v2",
+  "sandbox_limits": {
+    "timeout_seconds": 5,
+    "containers": 2,
+    "memory_per_container": "256m",
+    "cpus_per_container": 1,
+    "pids_per_container": 64
+  }
+}

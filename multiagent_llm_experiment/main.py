@@ -119,7 +119,8 @@ def main() -> None:
         commit = None
         dirty = None
     revisions = {name: hashlib.sha256((project_dir / name).read_bytes()).hexdigest()
-                 for name in ("tasks.py", "prompts.py", "sandbox_runner.py", "sandbox_worker.py", "sandbox_evaluator.py")}
+                 for name in ("tasks.py", "prompts.py", "sandbox_runner.py", "sandbox_worker.py",
+                              "sandbox_supervisor.py", "sandbox_evaluator.py")}
     try:
         gigachat_version = metadata.version("gigachat")
     except metadata.PackageNotFoundError:
@@ -133,7 +134,7 @@ def main() -> None:
                 "git_tracked_files_dirty": dirty, "model_parameters": "provider defaults; not exposed",
                 "revisions_sha256": revisions, "seed_control": "not supported by this client",
                 "sandbox_image": __import__("sandbox_runner").IMAGE,
-                "sandbox_executor": "two-container-rpc-v1",
+                "sandbox_executor": "two-container-supervised-rpc-v2",
                 "sandbox_limits": {"timeout_seconds": 5, "containers": 2, "memory_per_container": "256m", "cpus_per_container": 1, "pids_per_container": 64}}
     (output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     raw_path = output_dir / "raw_results.csv"

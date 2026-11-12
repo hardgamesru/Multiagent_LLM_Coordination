@@ -1,0 +1,2 @@
+architecture,model,runs,eligible,passed,success_rate,repeat_success_rate_stddev,infrastructure_failures,infrastructure_failure_rate,generation_or_provider_failures,avg_llm_calls
+single_agent,GigaChat-2,7,7,4,0.5714285714285714,,0,0.0,0,1.0
