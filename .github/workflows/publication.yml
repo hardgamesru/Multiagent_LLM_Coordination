@@ -1,7 +1,7 @@
 name: Research publication checks
 on:
   push:
-    branches: [research-v3]
+    branches: [main, research-v3]
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,3 +17,4 @@ jobs:
       - run: python -m unittest benchmark_v3.test_runner benchmark_v3.test_validation tests.test_publication -v
       - run: python tools/verify_publication.py
       - run: python tools/reproduce.py
+      - run: python tools/verify_publication.py

@@ -5243,8 +5243,8 @@
     {
       "public_path": "research/benchmark-v3/report.md",
       "original_sha256": "6bc8ad548f3d905e9d76520dd1d934f4d938da7232c6996f9bf45fbb79890a14",
-      "public_sha256": "ada09e150efd9d49aaea15ac2e569c6119fe171b5937ec16433cddfa2646488a",
-      "transformation": "Documented publication metadata/path redaction, portable-runtime adaptation, or equivalent regenerated visualization/report; measured values unchanged"
+      "public_sha256": "9ac9833f5a5c2aa06afb815a8da0883529ff1fe39fb671523aa3ebab82b65bbc",
+      "transformation": "Public report: path redaction and formatting/encoding corrections; measured values and original private report unchanged"
     },
     {
       "public_path": "research/benchmark-v3/pilot-report.md",

@@ -4,7 +4,7 @@ Publication branch: research-v3. Base: sandbox-integrity commit
 5e469e9cfcb185ae9650136dc5c539a9dad50256 plus the exact locally measured source
 bytes pinned in provenance/publication-freeze.json.
 
-- Offline v3, runner/ledger and publication tests passed (24 tests).
+- Offline v3, runner/ledger and publication tests passed (25 tests).
 - Full existing backend suite with RUN_DOCKER_TESTS=1 passed (39 tests).
 - An earlier Docker attempt failed because the Linux engine was stopped. Its
   infrastructure-error outcomes, including incidental adversarial non-pass checks,
@@ -25,6 +25,11 @@ bytes pinned in provenance/publication-freeze.json.
 - Private raw API responses, headers and full ledgers are retained in the documented
   local archive only. Unknown usage remains unknown with a full 69,632-token reserve.
 - No model generation calls were made during packaging or validation.
+
+The publication repair additionally verifies that report regeneration preserves
+all captured CSV, JSON, Markdown and source evidence, emits canonical UTF-8/LF
+English report text, and does not replace captured analysis scripts. The existing
+audit JSON is compared semantically and kept byte-identical across platforms.
 
 The known adversarial RPC integrity limitation remains; these test results do not
 establish security against deliberately malicious generated code.

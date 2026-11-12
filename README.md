@@ -1,73 +1,82 @@
-# Multiagent LLM Coordination — Benchmark v3
+# When Is Multi-Agent Coordination Worth Its Cost?
 
-Research publication branch `research-v3`, based on `sandbox-integrity` commit
-`5e469e9cfcb185ae9650136dc5c539a9dad50256` plus the measured local implementation.
-No model API access is required to validate or reproduce the published analysis.
+An empirical comparison of LLM coordination workflows for Python code generation.
 
-## Read the research
+This repository studies a practical trade-off: whether additional model calls, feedback, and candidate selection produce enough correct solutions to justify their cost. The experiments compare GigaChat 2 Lite and GigaChat 3 Ultra on the same programming tasks using a single-agent baseline and two coordination workflows.
 
-- [English research report](research/benchmark-v3/report.md)
-- [R1 measured results](research/benchmark-v3/runs/e44be8272a9a4592888eee2d63e19667) — 120 evaluations
-- [R2 measured results](research/benchmark-v3/runs/adbb87a0aa394be6a8319624686f12fd) — 120 new evaluations
-- [Paired tables and SVG figures](research/benchmark-v3/runs/adbb87a0aa394be6a8319624686f12fd/analysis)
-- [Provenance and privacy](provenance/README.md)
+## Results
 
-| Model / architecture | R1 passed / 20 | R2 passed / 20 |
-|---|---:|---:|
-| GigaChat-2 / single_agent | 5 | 7 |
-| GigaChat-2 / feedback_graph | 4 | 9 |
-| GigaChat-2 / parallel_consensus | 3 | 7 |
-| GigaChat-3-Ultra / single_agent | 18 | 17 |
-| GigaChat-3-Ultra / feedback_graph | 17 | 17 |
-| GigaChat-3-Ultra / parallel_consensus | 18 | 19 |
+Benchmark v3 includes 20 predefined tasks, two models, three workflows, and two complete repetitions. Each task was evaluated against held-out tests. The table reports successes across the two repetitions; each condition uses the same 20 tasks twice.
 
-There are 20 distinct tasks measured twice across six model–architecture conditions,
-not 240 independent tasks. Outcomes depend on architecture and repetition; these
-data do not establish a universal or causal coordination advantage. No seed control
-is available. See the report for paired difficulty analyses and limitations.
+| Model | Workflow | Run 1 | Run 2 | Combined | Tokens, incl. cached input |
+| --- | --- | ---: | ---: | ---: | ---: |
+| GigaChat 2 Lite | Single agent | 5/20 | 7/20 | 12/40 | 18,541 |
+| GigaChat 2 Lite | Feedback graph | 4/20 | 9/20 | 13/40 | 151,777 |
+| GigaChat 2 Lite | Parallel consensus | 3/20 | 7/20 | 10/40 | 131,039 |
+| GigaChat 3 Ultra | Single agent | 18/20 | 17/20 | 35/40 | 17,915 |
+| GigaChat 3 Ultra | Feedback graph | 17/20 | 17/20 | 34/40 | 92,668 |
+| GigaChat 3 Ultra | Parallel consensus | 18/20 | 19/20 | 37/40 | 136,201 |
 
-## Reproduce offline
+Across the two complete runs, the benchmark recorded **240 evaluations, 141 passes, 965 model calls, and 548,141 tokens** (input usage, cached input, and output combined).
 
-Python 3.12+ is supported. Install into a virtual environment:
+![Success rates by workflow and repetition](research/benchmark-v3/runs/adbb87a0aa394be6a8319624686f12fd/analysis/success-by-repetition.svg)
+
+The stronger model passed substantially more tasks in this suite. Coordination sometimes improved correctness relative to a single call, but its advantage changed between repetitions and was small compared with its token overhead. For example, Ultra's consensus workflow passed 37/40 evaluations versus 35/40 for the single-agent baseline, using roughly 7.6 times as many tokens overall.
+
+These are descriptive results from a limited task suite, not evidence of a general or causal advantage.
+
+## Experimental design
+
+The v3 task set was fixed before model evaluation: four easy, eight medium, and eight hard tasks. It covers parsing, data structures, graph algorithms, dynamic programming, and stateful software-engineering problems. Each task has visible examples, separate development tests, held-out evaluation tests, and a validated reference solution.
+
+The three measured workflows are:
+
+- **Single agent:** one model-generated candidate, without coordination.
+- **Feedback graph:** development-test feedback and iterative revision before final evaluation.
+- **Parallel consensus:** several candidate generations and a selection stage. The implementation generates candidates sequentially; the name reflects the workflow, not concurrent execution.
+
+Both models used the same API endpoint, a 4,096-token response limit, and a maximum of three feedback iterations where applicable. The runner stores per-request usage and final evaluation outcomes. The full implementation also retains three other coordination workflows from the earlier benchmark.
+
+### Research question
+
+Does coordination improve held-out correctness as task difficulty increases, and does the answer differ by base-model capability?
+
+The two repetitions do not establish either proposed relationship. Results vary by workflow and task, and the difficulty categories are predefined judgments rather than externally calibrated levels.
+
+## Reproduce the analysis
+
+The published tables and figures can be regenerated without API credentials, paid model calls, or Docker:
+
+Use Python 3.12 or newer.
 
 ```sh
 python -m pip install -r requirements.txt
 python -m unittest benchmark_v3.test_runner benchmark_v3.test_validation tests.test_publication -v
 python tools/verify_publication.py
-MPLBACKEND=Agg python tools/reproduce.py
+python tools/reproduce.py
 ```
 
-On Windows, set `MPLBACKEND=Agg` in the shell or omit it (the script sets Agg).
-Reproduction uses preserved CSV and privacy-minimized usage metadata, with an
-in-memory SQLite adapter. It does not call a model or require credentials. Existing
-CSV tables are verified numerically and kept byte-identical; SVGs/report regenerate.
+The reproduction script uses preserved result tables and a privacy-minimized request audit. It does not issue model requests.
 
-## Evidence boundaries
+## Code and data
 
-| Area | Meaning |
-|---|---|
-| [Historical conference-era files](historical/conference/README.md) | Existing legacy artifacts, preserved without reconstructing missing provenance |
-| [Benchmark v2](research/benchmark-v2/README.md) | Nine-task protocol and completed Lite/Ultra experiments |
-| [Benchmark v3](research/benchmark-v3/report.md) | Frozen 20-task suite and two balanced main repetitions |
-| `multiagent_llm_experiment/` | Exact measured backend; all six architectures retained; legacy results/solutions remain in place |
-| `benchmark_v3/` | Immutable task definitions, trusted references, validation and portable publication runner |
+- [Task specifications](benchmark_v3/task-specifications.md) and [preregistered experimental design](benchmark_v3/experimental-design.md)
+- [Complete research report](research/benchmark-v3/report.md)
+- [Run 1 results](research/benchmark-v3/runs/e44be8272a9a4592888eee2d63e19667)
+- [Run 2 results and paired comparisons](research/benchmark-v3/runs/adbb87a0aa394be6a8319624686f12fd/analysis)
+- [Benchmark v2](research/benchmark-v2/README.md) and [earlier conference-era records](historical/conference/README.md)
+- [Artifact provenance](provenance/README.md) and [validation notes](docs/validation.md)
 
-Historical conference results are not directly compared with v3. The v3 pilot and
-earlier aborted run are separate from the two completed main datasets. The older
-unknown-billing request retains a 69,632-token reservation; it is never zero-filled.
+Benchmark v2 uses a different nine-task protocol and is not pooled with v3. The earlier conference-era research is retained separately and is not treated as a directly comparable result.
 
-## New API experiments
+## Earlier research
 
-No further paid experiments are authorized by this release. The runner requires
-`--enable-paid` for any generation command. It uses ignored private local state;
-the original private ledger is not published. A future researcher must explicitly
-authorize their own budget and configure credentials locally. Never mistake the
-public metadata export for a recoverable private model-response cache.
+This project follows an [earlier 2026 conference study of graph-based coordination in multi-agent LLM systems](https://journal.altstu.ru/konf2026/2026_1/155/). The conference paper documented a different, earlier study. Its results are not directly compared with Benchmark v2 or v3.
 
-## Sandbox limitation
+## Limitations
 
-Docker is used for normal generated solutions. The known adversarial RPC integrity
-limitation remains: this benchmark does **not** establish security against malicious
-generated code. Optional Docker tests can be run using the commands in
-[validation documentation](docs/validation.md); adversarial tests are not represented
-as passed when skipped in an offline-only run.
+This is an exploratory study of **20 distinct tasks measured twice**, not 240 independent task samples. There is no controlled generation seed, execution order was not randomized, and difficulty labels are subjective. The Docker-based evaluator is suitable for the tested normal-operation setting but has a documented RPC integrity limitation for deliberately malicious candidate code. We do not claim adversarial security.
+
+One earlier interrupted API request has unresolved billing metadata; its full reservation remains in the budget record. Original raw provider responses and private ledger files are not published. See the [provenance documentation](provenance/README.md) for the distinction between original artifacts and public, privacy-minimized copies.
+
+The repository is a record of the measured experiments. No additional paid runs are needed to reproduce its reported tables and figures.

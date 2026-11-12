@@ -6,7 +6,7 @@ Does multi-agent coordination help code generation as task difficulty increases,
 
 ## Dataset, environment and evidence lineage
 
-First complete main: `e44be8272a9a4592888eee2d63e19667`. Second independently executed main: `adbb87a0aa394be6a8319624686f12fd`. Each contains 120 new evaluations: 20 tasks Р вЂњРІР‚вЂќ 2 models Р вЂњРІР‚вЂќ 3 architectures. No first-run observation substitutes for a second-run observation. Repetition indices are 1 and 2. There are 240 main evaluations of the same **20 distinct tasks**, not 240 independent tasks.
+First complete main: `e44be8272a9a4592888eee2d63e19667`. Second independently executed main: `adbb87a0aa394be6a8319624686f12fd`. Each contains 120 new evaluations: 20 tasks x 2 models x 3 architectures. No first-run observation substitutes for a second-run observation. Repetition indices are 1 and 2. There are 240 main evaluations of the same **20 distinct tasks**, not 240 independent tasks.
 
 R1 UTC: 2026-11-11T17:03:36.455568+00:00 to 2026-11-11T17:22:37.566344+00:00. R2 UTC: 2026-11-11T17:45:42.590111+00:00 to 2026-11-11T18:04:07.717305+00:00. Client timezone: Asia/Barnaul.
 
@@ -63,7 +63,7 @@ Failures across complete main runs: {'failed_tests': 96, 'candidate_timeout': 2,
 | GigaChat-3-Ultra | feedback_graph | 16 | 2 | 1 | 1 |
 | GigaChat-3-Ultra | parallel_consensus | 18 | 1 | 1 | 0 |
 
-Stable failure means neither repetition passed; failure categories may differ. Every taskР Р†Р вЂљРІвЂћСћs name, difficulty, two statuses and stability label are in `task-stability.csv`, including all stable and changing outcomes. The observations are paired on identical tasks.
+Stable failure means neither repetition passed; failure categories may differ. Every task's name, difficulty, two statuses and stability label are in `task-stability.csv`, including all stable and changing outcomes. The observations are paired on identical tasks.
 
 ![Task stability](runs/adbb87a0aa394be6a8319624686f12fd/analysis/task-stability.svg)
 
@@ -82,7 +82,7 @@ IDs map to the frozen task inventory; full task names and exact statuses are ret
 
 ## Paired coordination comparisons
 
-For each task, compare a coordinated architecture with Single Agent in the same model and repetition. Р Р†Р вЂљРЎС™Coord onlyР Р†Р вЂљРЎСљ and Р Р†Р вЂљРЎС™Single onlyР Р†Р вЂљРЎСљ are discordant pairs; their difference is the observed change in passed-task count. No unpaired test or significance claim is made.
+For each task, compare a coordinated architecture with Single Agent in the same model and repetition. 'Coord only' and 'Single only' are discordant pairs; their difference is the observed change in passed-task count. No unpaired test or significance claim is made.
 
 | Repeat | Model | Architecture | Both pass | Coord only | Single only | Both fail | Net passed-task difference |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -122,12 +122,12 @@ The denominator below is 40 task-repetition observations per model/architecture,
 
 | Model | Architecture | Passed /40 | Tokens/pass | Ratio to Single | Repeat rate range | Sample SD (pp) |
 | --- | --- | --- | --- | --- | --- | --- |
-| GigaChat-2 | single_agent | 12/40 | 1545.1 | 1.00 | 25.0%Р Р†Р вЂљРІР‚Сљ35.0% | 7.07 |
-| GigaChat-2 | feedback_graph | 13/40 | 11675.2 | 7.56 | 20.0%Р Р†Р вЂљРІР‚Сљ45.0% | 17.68 |
-| GigaChat-2 | parallel_consensus | 10/40 | 13103.9 | 8.48 | 15.0%Р Р†Р вЂљРІР‚Сљ35.0% | 14.14 |
-| GigaChat-3-Ultra | single_agent | 35/40 | 511.9 | 1.00 | 85.0%Р Р†Р вЂљРІР‚Сљ90.0% | 3.54 |
-| GigaChat-3-Ultra | feedback_graph | 34/40 | 2725.5 | 5.32 | 85.0%Р Р†Р вЂљРІР‚Сљ85.0% | 0.00 |
-| GigaChat-3-Ultra | parallel_consensus | 37/40 | 3681.1 | 7.19 | 90.0%Р Р†Р вЂљРІР‚Сљ95.0% | 3.54 |
+| GigaChat-2 | single_agent | 12/40 | 1545.1 | 1.00 | 25.0%-35.0% | 7.07 |
+| GigaChat-2 | feedback_graph | 13/40 | 11675.2 | 7.56 | 20.0%-45.0% | 17.68 |
+| GigaChat-2 | parallel_consensus | 10/40 | 13103.9 | 8.48 | 15.0%-35.0% | 14.14 |
+| GigaChat-3-Ultra | single_agent | 35/40 | 511.9 | 1.00 | 85.0%-90.0% | 3.54 |
+| GigaChat-3-Ultra | feedback_graph | 34/40 | 2725.5 | 5.32 | 85.0%-85.0% | 0.00 |
+| GigaChat-3-Ultra | parallel_consensus | 37/40 | 3681.1 | 7.19 | 90.0%-95.0% | 3.54 |
 
 ## Hypotheses and limitations
 
@@ -144,7 +144,7 @@ Only two repetitions and 20 authored tasks were observed, with dependent repeate
 
 ### Interpretation of the two measured repetitions
 
-Lite improves from 12/60 to 23/60, while Ultra has 53/60 in both repetitions. Equal Ultra totals hide task-level changes: three taskР Р†Р вЂљРІР‚Сљarchitecture cells improve and three regress. Across both models, 17 of the 120 matched taskР Р†Р вЂљРІР‚Сљarchitecture pairs change pass/fail outcome; the other 103 are stable. These are condition-level pairs sharing the same 20 tasks, not 120 independent tasks.
+Lite improves from 12/60 to 23/60, while Ultra has 53/60 in both repetitions. Equal Ultra totals hide task-level changes: three task-architecture cells improve and three regress. Across both models, 17 of the 120 matched task-architecture pairs change pass/fail outcome; the other 103 are stable. These are condition-level pairs sharing the same 20 tasks, not 120 independent tasks.
 
 Feedback changes the passed-task count relative to Single Agent by -1 then +2 for Lite, and -1 then 0 for Ultra. Consensus changes it by -2 then 0 for Lite, and 0 then +2 for Ultra. Thus the second repetition shows some coordination gains, but the direction is architecture- and repetition-specific. The feedback contrast in R2 is compatible with a smaller Ultra benefit; the consensus contrasts do not support that generalization. Neither H1 nor H2 is established by these two repetitions.
 
@@ -154,7 +154,7 @@ One R2 response reached max_tokens=4096: Lite feedback on v3_13 evaluate_express
 
 ## Budget, approval and preserved artifacts
 
-The conservative preflight used existing known usage 313,152 + unknown-request reserve 69,632 + ceil(266,903 Р вЂњРІР‚вЂќ 1.5) = 400,355 + an additional request reserve 69,632 = 852,771 tokens. The user explicitly approved increasing the target from 850,000 to 853,000 before repetition 2. The 1,000,000 hard ceiling and all prior costs/reservations remained unchanged. The approval is durable in the ledger and second manifest.
+The conservative preflight used existing known usage 313,152 + unknown-request reserve 69,632 + ceil(266,903 x 1.5) = 400,355 + an additional request reserve 69,632 = 852,771 tokens. The user explicitly approved increasing the target from 850,000 to 853,000 before repetition 2. The 1,000,000 hard ceiling and all prior costs/reservations remained unchanged. The approval is durable in the ledger and second manifest.
 
 Known usage across pilot, abandoned attempt and both complete mains: **594,390 tokens including cache**. Unknown-billing requests: 1; full retained reserve: 69,632. Known plus reservations: **664,022**. Remaining after reservations: 188,978 to approved target 853,000, and 335,978 to hard ceiling 1,000,000. The exact aggregate actual consumption remains unknown until the older unresolved request is reconciled; the reserve is an allowance, not measured usage. No third repetition was run.
 

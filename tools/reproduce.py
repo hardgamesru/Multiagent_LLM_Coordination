@@ -7,6 +7,7 @@ from collections import Counter
 import csv
 import hashlib
 import json
+import math
 from pathlib import Path
 import shutil
 import sqlite3
@@ -160,7 +161,21 @@ def compare(first,second):
            'known_plus_reserved':known+held,'approved_target':target,'hard_ceiling':1000000,
            'remaining_target_after_reservations':target-known-held,'remaining_hard_after_reservations':1000000-known-held,
            'returned_model_versions':versions,'request_finish_reasons':dict(Counter(c['finish_reason'] for c in c1+c2))}
-    (out/'two-repetition-audit.json').write_text(json.dumps(audit,indent=2)+'\n',encoding='utf-8')
+    audit_path=out/'two-repetition-audit.json'
+    if audit_path.exists():
+        def same(a,b):
+            if isinstance(a,dict) and isinstance(b,dict):
+                return a.keys()==b.keys() and all(same(a[k],b[k]) for k in a)
+            if isinstance(a,list) and isinstance(b,list):
+                return len(a)==len(b) and all(same(x,y) for x,y in zip(a,b))
+            if isinstance(a,float) and isinstance(b,(int,float)):
+                return math.isclose(a,b,rel_tol=1e-12,abs_tol=1e-8)
+            return a==b
+        assert same(json.loads(audit_path.read_text(encoding='utf-8')),
+                    json.loads(json.dumps(audit))), 'Audit values changed'
+        # Preserve captured audit bytes, including their original line endings.
+    else:
+        audit_path.write_bytes((json.dumps(audit,indent=2)+'\n').encode('utf-8'))
     def success_cell(rep,model,arch):
         p=next(p for p in per_run if p['model']==model and p['architecture']==arch and p['repetition']==rep)
         return f"{p['passed']}/20 ({100*p['success_rate']:.1f}%)"
@@ -168,7 +183,7 @@ def compare(first,second):
       '## Research question and hypotheses','',
       'Does multi-agent coordination help code generation as task difficulty increases, and does stronger model capability reduce that benefit? H1 predicts increasing coordination advantage with difficulty. H2 predicts a smaller advantage for Ultra than Lite. Neither is assumed true. This is a descriptive study of 20 predefined tasks, reused across conditions and repetitions; it is not a causal experiment on a random task population.','',
       '## Dataset, environment and evidence lineage','',
-      f'First complete main: `{first.name}`. Second independently executed main: `{second.name}`. Each contains 120 new evaluations: 20 tasks Р вЂњРІР‚вЂќ 2 models Р вЂњРІР‚вЂќ 3 architectures. No first-run observation substitutes for a second-run observation. Repetition indices are 1 and 2. There are 240 main evaluations of the same **20 distinct tasks**, not 240 independent tasks.','',
+      f'First complete main: `{first.name}`. Second independently executed main: `{second.name}`. Each contains 120 new evaluations: 20 tasks x 2 models x 3 architectures. No first-run observation substitutes for a second-run observation. Repetition indices are 1 and 2. There are 240 main evaluations of the same **20 distinct tasks**, not 240 independent tasks.','',
       f"R1 UTC: {m1['started_utc']} to {m1['updated_utc']}. R2 UTC: {m2['started_utc']} to {m2['updated_utc']}. Client timezone: Asia/Barnaul.",'',
       'Benchmark v2 used nine tasks and six architectures; its measured full runs were Lite 26/54 and Ultra 51/54. It remains archived unchanged with original data and source. Older publication-era files are separately labelled historical_unverified; missing records are not reconstructed. V3 has 4 easy, 8 medium and 8 hard preregistered tasks, each with visible examples, independent development and held-out tests, trusted references, negative/edge cases and a difficulty rationale. Before API calls, 70 development cases, 121 held-out cases and 1,285 oracle/property checks passed, together with Docker fixture validation.','',
       'Difficulty is an a-priori judgement: easy means simple scanning/indexing, medium combines boundary/state rules or a standard graph/data-structure algorithm, hard includes recursive parsing, dynamic programming, global graph problems and transactional/patch semantics. These labels are not human-calibrated; size limits do not enforce a particular asymptotic complexity. Task definitions and expected outputs were not tuned after model outcomes.','',
@@ -192,10 +207,10 @@ def compare(first,second):
       '## Task stability across repetitions','']
     report+=md_table(['Model','Architecture','Stable success','Stable failure','Improved R2','Regressed R2'],
       [[model,arch,*[sum(s['model']==model and s['architecture']==arch and s['category']==category for s in stability) for category in ['stable_success','stable_failure','improved','regressed']]] for model in MODELS for arch in ARCHS])
-    report+=['','Stable failure means neither repetition passed; failure categories may differ. Every taskР Р†Р вЂљРІвЂћСћs name, difficulty, two statuses and stability label are in `task-stability.csv`, including all stable and changing outcomes. The observations are paired on identical tasks.','',
+    report+=['','Stable failure means neither repetition passed; failure categories may differ. Every task\'s name, difficulty, two statuses and stability label are in `task-stability.csv`, including all stable and changing outcomes. The observations are paired on identical tasks.','',
       '![Task stability](runs/'+second.name+'/analysis/task-stability.svg)','',
       '## Paired coordination comparisons','',
-      'For each task, compare a coordinated architecture with Single Agent in the same model and repetition. Р Р†Р вЂљРЎС™Coord onlyР Р†Р вЂљРЎСљ and Р Р†Р вЂљРЎС™Single onlyР Р†Р вЂљРЎСљ are discordant pairs; their difference is the observed change in passed-task count. No unpaired test or significance claim is made.','']
+      'For each task, compare a coordinated architecture with Single Agent in the same model and repetition. \'Coord only\' and \'Single only\' are discordant pairs; their difference is the observed change in passed-task count. No unpaired test or significance claim is made.','']
     report+=md_table(['Repeat','Model','Architecture','Both pass','Coord only','Single only','Both fail','Net passed-task difference'],
       [[rep,model,arch,*[sum(p[k] for p in paired if p['repetition']==rep and p['model']==model and p['architecture']==arch) for k in ['both_passed','coordination_only','single_only','both_failed']],
         sum(p['coordination_only']-p['single_only'] for p in paired if p['repetition']==rep and p['model']==model and p['architecture']==arch)] for rep in (1,2) for model in MODELS for arch in ARCHS[1:]])
@@ -207,7 +222,7 @@ def compare(first,second):
       '## Descriptive pooled efficiency and repetition variability','',
       'The denominator below is 40 task-repetition observations per model/architecture, representing the same 20 tasks twice. It must not be interpreted as 40 independent tasks. Tokens per pass include unsuccessful attempts. Repeat-rate sample SD uses only two rates and is unstable; it is not a confidence interval.','']
     report+=md_table(['Model','Architecture','Passed /40','Tokens/pass','Ratio to Single','Repeat rate range','Sample SD (pp)'],
-      [[p['model'],p['architecture'],f"{p['passed']}/40",f"{p['tokens_per_pass']:.1f}" if p['tokens_per_pass'] else 'undefined',f"{p['tokens_per_pass_relative_to_single']:.2f}" if p['tokens_per_pass_relative_to_single'] else 'undefined',f"{100*p['repeat_rate_min']:.1f}%Р Р†Р вЂљРІР‚Сљ{100*p['repeat_rate_max']:.1f}%",f"{100*p['repeat_rate_sample_sd']:.2f}"] for p in pooled])
+      [[p['model'],p['architecture'],f"{p['passed']}/40",f"{p['tokens_per_pass']:.1f}" if p['tokens_per_pass'] else 'undefined',f"{p['tokens_per_pass_relative_to_single']:.2f}" if p['tokens_per_pass_relative_to_single'] else 'undefined',f"{100*p['repeat_rate_min']:.1f}%-{100*p['repeat_rate_max']:.1f}%",f"{100*p['repeat_rate_sample_sd']:.2f}"] for p in pooled])
     report+=['','## Hypotheses and limitations','',
       'Observed coordination differences for both repetitions:','']
     for rep in (1,2):
@@ -221,7 +236,7 @@ def compare(first,second):
     report+=['','These paired contrasts and the difficulty table allow assessment of the direction observed in this suite. They do not justify a universal claim that stronger models benefit less from coordination. A benefit confined to one hard task, a ceiling effect on easy tasks or differences that reverse between repetitions require replication. No statistical significance, population-level or causal claim is made. Detailed changing task IDs permit inspection without post-hoc test tuning.','',
       'Only two repetitions and 20 authored tasks were observed, with dependent repeated task measurements. There is no seed control, randomized execution order or assurance of stochastic independence. Provider defaults/versions and input caching may drift. Difficulty is subjective, reference validation is dynamic rather than formal proof, and task coverage is narrow. The known adversarial sandbox RPC integrity limitation remains; Docker test passage does not establish security against intentionally malicious generated code. Future work should use independently reviewed tasks, more preregistered repetitions, counterbalanced order and stronger isolation.','',
       '## Budget, approval and preserved artifacts','',
-      'The conservative preflight used existing known usage 313,152 + unknown-request reserve 69,632 + ceil(266,903 Р вЂњРІР‚вЂќ 1.5) = 400,355 + an additional request reserve 69,632 = 852,771 tokens. The user explicitly approved increasing the target from 850,000 to 853,000 before repetition 2. The 1,000,000 hard ceiling and all prior costs/reservations remained unchanged. The approval is durable in the ledger and second manifest.','',
+      'The conservative preflight used existing known usage 313,152 + unknown-request reserve 69,632 + ceil(266,903 x 1.5) = 400,355 + an additional request reserve 69,632 = 852,771 tokens. The user explicitly approved increasing the target from 850,000 to 853,000 before repetition 2. The 1,000,000 hard ceiling and all prior costs/reservations remained unchanged. The approval is durable in the ledger and second manifest.','',
       f"Known usage across pilot, abandoned attempt and both complete mains: **{known:,} tokens including cache**. Unknown-billing requests: {audit['unknown_request_count']}; full retained reserve: {held:,}. Known plus reservations: **{known+held:,}**. Remaining after reservations: {target-known-held:,} to approved target {target:,}, and {1000000-known-held:,} to hard ceiling 1,000,000. The exact aggregate actual consumption remains unknown until the older unresolved request is reconciled; the reserve is an allowance, not measured usage. No third repetition was run.",'',
       f'- First complete main: `{first.relative_to(ROOT).as_posix()}`',f'- Second complete main: `{second.relative_to(ROOT).as_posix()}`',f'- Paired tables and SVG figures: `{out.relative_to(ROOT).as_posix()}`','- Public request audit: `research/benchmark-v3/audit/requests.csv`',
       '- Offline analysis script: `tools/reproduce.py`',f'- First single-run report preserved: `{old_report.relative_to(ROOT).as_posix()}`',
@@ -237,15 +252,13 @@ def compare(first,second):
     version_note='The provider-returned versions were identical across repetitions.' if versions[1]==versions[2] else 'Provider-returned versions differed across repetitions; this weakens comparability and is not controlled by the client.'
     report.insert(report.index('## Success and resource use in each repetition'),version_note+'\n')
     findings=['### Interpretation of the two measured repetitions','',
-              'Lite improves from 12/60 to 23/60, while Ultra has 53/60 in both repetitions. Equal Ultra totals hide task-level changes: three taskР Р†Р вЂљРІР‚Сљarchitecture cells improve and three regress. Across both models, 17 of the 120 matched taskР Р†Р вЂљРІР‚Сљarchitecture pairs change pass/fail outcome; the other 103 are stable. These are condition-level pairs sharing the same 20 tasks, not 120 independent tasks.','',
+              'Lite improves from 12/60 to 23/60, while Ultra has 53/60 in both repetitions. Equal Ultra totals hide task-level changes: three task-architecture cells improve and three regress. Across both models, 17 of the 120 matched task-architecture pairs change pass/fail outcome; the other 103 are stable. These are condition-level pairs sharing the same 20 tasks, not 120 independent tasks.','',
               'Feedback changes the passed-task count relative to Single Agent by -1 then +2 for Lite, and -1 then 0 for Ultra. Consensus changes it by -2 then 0 for Lite, and 0 then +2 for Ultra. Thus the second repetition shows some coordination gains, but the direction is architecture- and repetition-specific. The feedback contrast in R2 is compatible with a smaller Ultra benefit; the consensus contrasts do not support that generalization. Neither H1 nor H2 is established by these two repetitions.','',
               'On hard tasks, the Ultra feedback advantage seen in R1 (7/8 versus 6/8) does not repeat in R2 (6/8 versus 6/8). Lite feedback has 3/8 versus 1/8 in R2, compared with 1/8 versus 1/8 in R1. Ultra consensus reaches 7/8 hard tasks in R2 versus 6/8 for Single Agent. These narrow gains motivate replication, not causal claims about difficulty. Coordination remains substantially more token-intensive per passed solution in the pooled descriptive table.','',
               'One R2 response reached max_tokens=4096: Lite feedback on v3_13 evaluate_expression. It is preserved with finish_reason=length; the final evaluation status is candidate_timeout. The existing three-iteration feedback policy ran normally, with no transport retry or extra task evaluation. Co-occurrence alone does not establish that truncation caused the timeout.','']
     report[report.index('## Budget, approval and preserved artifacts'):report.index('## Budget, approval and preserved artifacts')]=findings
     report.extend(['', '## Publication provenance and privacy', '', 'Public raw and summary CSV files are byte-identical to the measured originals. Personal filesystem metadata in manifests, source snapshots and documentation is redacted in explicitly derived publication copies; original hashes and public hashes are recorded in provenance/artifact-lineage.json. The exact originals, including private SQLite responses, remain in a documented local archive identified by provenance/local-archive.json. No raw response bodies, credentials or session headers are public. The portable runtime is a publication adaptation, distinct from the recorded measurement source snapshots.'])
-    report_path.write_text('\n'.join(report)+'\n',encoding='utf-8')
-    shutil.copyfile(Path(__file__),out/'comparison-source.py')
-    shutil.copyfile(ROOT/'tools/analysis_common.py',out/'single-analysis-dependency.py')
+    report_path.write_bytes(('\n'.join(report)+'\n').encode('utf-8'))
     print(json.dumps(audit,indent=2))
     db.close()
 
