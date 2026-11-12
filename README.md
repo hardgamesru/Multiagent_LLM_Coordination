@@ -56,7 +56,7 @@ python tools/verify_publication.py
 python tools/reproduce.py
 ```
 
-The reproduction script uses preserved result tables and a privacy-minimized request audit. It does not issue model requests.
+The reproduction script uses preserved result tables and a privacy-minimized request audit. It does not issue model requests. Newly rendered SVGs are saved to `reproduced/benchmark-v3/figures/` (or `--figures-dir PATH`); the captured figures linked in the report retain their original hashes. SVG bytes can vary with platform fonts and rendering libraries.
 
 ## Code and data
 

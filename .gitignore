@@ -17,5 +17,6 @@ __pycache__/
 research_archive/
 research_v3/
 local_runs/
+reproduced/
 *.log
 *.tmp

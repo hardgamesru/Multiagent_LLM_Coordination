@@ -23,13 +23,18 @@ class PublicationTests(unittest.TestCase):
         report=root/'research/benchmark-v3/report.md'
         protected={p:hashlib.sha256(p.read_bytes()).hexdigest()
                    for p in (root/'research').rglob('*')
-                   if p.is_file() and p!=report and p.suffix in {'.csv','.json','.py','.md'}}
+                   if p.is_file() and p!=report and p.suffix in {'.csv','.json','.py','.md','.svg'}}
         executable=os.environ.get('V3_ANALYSIS_PYTHON',sys.executable)
         with tempfile.TemporaryDirectory() as config:
             env=dict(os.environ,MPLBACKEND='Agg',MPLCONFIGDIR=config)
-            result=subprocess.run([executable,str(root/'tools/reproduce.py')],cwd=root,
+            figures=Path(config)/'figures'
+            result=subprocess.run([executable,str(root/'tools/reproduce.py'),'--figures-dir',str(figures)],cwd=root,
                                   env=env,capture_output=True,text=True)
-        self.assertEqual(result.returncode,0,result.stderr)
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertEqual({p.name for p in figures.glob('*.svg')},
+                             {'success-by-repetition.svg','success-by-difficulty-two-repetitions.svg','task-stability.svg'})
+            for path in figures.glob('*.svg'):
+                self.assertIn('<svg',path.read_text(encoding='utf-8'))
         for path,expected in protected.items():
             self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),expected,str(path))
         self.assertNotIn(b'\r',report.read_bytes())

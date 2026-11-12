@@ -44,7 +44,7 @@ def read_run(folder,db,number):
     return manifest,rows,calls
 
 
-def compare(first,second):
+def compare(first,second,figures_dir=None):
     first,second=Path(first).resolve(),Path(second).resolve()
     verify(core_only=True)
     db=load_audit()
@@ -54,6 +54,10 @@ def compare(first,second):
     assert len({r['key'] for r in c1}&{r['key'] for r in c2})==0
     assert m2['second_repetition']['first_complete_run']==first.name
     out=second/'analysis';out.mkdir(exist_ok=True)
+    # Renderer/font differences may change SVG bytes across platforms. Never
+    # overwrite the captured publication figures or their provenance hashes.
+    figures=Path(figures_dir) if figures_dir is not None else ROOT/'reproduced/benchmark-v3/figures'
+    figures.mkdir(parents=True,exist_ok=True)
     all_rows=r1+r2
     save_table(out/'evaluations-two-repetitions.csv',all_rows)
     per_run=[];difficulty=[];pooled=[];overall=[]
@@ -119,7 +123,7 @@ def compare(first,second):
         ax.set_title(model);ax.set_xticks(range(3),['Single','Feedback','Consensus']);ax.set_ylim(0,112);ax.grid(axis='y',alpha=.2);ax.set_axisbelow(True)
     axes[0].set_ylabel('Held-out success (%)');axes[1].legend(frameon=False,loc='upper center',bbox_to_anchor=(.5,-.12),ncol=2)
     fig.suptitle('Two repetitions of the same 20 tasks; descriptive results');fig.tight_layout()
-    for ext in ['svg']:fig.savefig(out/f'success-by-repetition.{ext}',metadata={'Date':None} if ext=='svg' else None,dpi=140)
+    for ext in ['svg']:fig.savefig(figures/f'success-by-repetition.{ext}',metadata={'Date':None} if ext=='svg' else None,dpi=140)
     plt.close(fig)
     fig,axes=plt.subplots(1,2,figsize=(11,4),sharey=True)
     for ax,model in zip(axes,MODELS):
@@ -130,7 +134,7 @@ def compare(first,second):
         ax.set_title(model);ax.set_xticks(range(3),['Easy (4)','Medium (8)','Hard (8)']);ax.set_ylim(-3,105);ax.grid(alpha=.2)
     axes[0].set_ylabel('Held-out success (%)');axes[1].legend(fontsize=8,frameon=False,loc='upper center',bbox_to_anchor=(.5,-.13),ncol=2)
     fig.suptitle('Predefined difficulty; dashed R1 / solid R2, no fitted trend');fig.tight_layout()
-    for ext in ['svg']:fig.savefig(out/f'success-by-difficulty-two-repetitions.{ext}',metadata={'Date':None} if ext=='svg' else None,dpi=140)
+    for ext in ['svg']:fig.savefig(figures/f'success-by-difficulty-two-repetitions.{ext}',metadata={'Date':None} if ext=='svg' else None,dpi=140)
     plt.close(fig)
     fig,axes=plt.subplots(1,2,figsize=(11,4),sharey=True)
     for ax,model in zip(axes,MODELS):
@@ -144,7 +148,7 @@ def compare(first,second):
         ax.set_title(model);ax.set_xticks(range(3),['Single','Feedback','Consensus']);ax.set_ylim(0,21);ax.set_yticks([0,5,10,15,20])
     axes[0].set_ylabel('Distinct tasks (20 per architecture)');axes[1].legend(frameon=False,loc='upper center',bbox_to_anchor=(.5,-.12),ncol=3)
     fig.suptitle('Task stability across two repetitions');fig.tight_layout()
-    for ext in ['svg']:fig.savefig(out/f'task-stability.{ext}',metadata={'Date':None} if ext=='svg' else None,dpi=140)
+    for ext in ['svg']:fig.savefig(figures/f'task-stability.{ext}',metadata={'Date':None} if ext=='svg' else None,dpi=140)
     plt.close(fig)
     # Preserve the prior single-run report before publishing the requested update.
     report_path=ROOT/'research/benchmark-v3/report.md'
@@ -265,4 +269,5 @@ def compare(first,second):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('first',type=Path,nargs='?',default=ROOT/'research/benchmark-v3/runs/e44be8272a9a4592888eee2d63e19667');parser.add_argument('second',type=Path,nargs='?',default=ROOT/'research/benchmark-v3/runs/adbb87a0aa394be6a8319624686f12fd')
-    args=parser.parse_args();compare(args.first,args.second)
+    parser.add_argument('--figures-dir',type=Path,help='Directory for newly rendered SVGs; captured publication figures remain unchanged')
+    args=parser.parse_args();compare(args.first,args.second,args.figures_dir)

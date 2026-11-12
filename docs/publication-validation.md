@@ -27,9 +27,12 @@ bytes pinned in provenance/publication-freeze.json.
 - No model generation calls were made during packaging or validation.
 
 The publication repair additionally verifies that report regeneration preserves
-all captured CSV, JSON, Markdown and source evidence, emits canonical UTF-8/LF
+all captured CSV, JSON, Markdown, SVG and source evidence, emits canonical UTF-8/LF
 English report text, and does not replace captured analysis scripts. The existing
 audit JSON is compared semantically and kept byte-identical across platforms.
+New SVG renderings go to `reproduced/benchmark-v3/figures/` by default instead of
+overwriting captured figures. Font/rendering differences across operating systems
+can change SVG bytes without changing the measured values used to plot them.
 
 The known adversarial RPC integrity limitation remains; these test results do not
 establish security against deliberately malicious generated code.
